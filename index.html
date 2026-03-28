@@ -1,0 +1,3057 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אג'יליטי כלבני – CoolDog</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Rubik:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Rubik:wght@400;700;900&display=swap');
+    :root { --gold:#d4a017; --gold-glow:rgba(212,160,23,0.6); --blue:#1a6abf; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #050810; font-family: 'Rubik', sans-serif; direction: rtl; user-select: none; }
+    #canvas-container { width: 100vw; height: 100vh; }
+
+    /* ── HUD TOP BAR ── */
+    #hud {
+      position: fixed; top: 0; right: 0; left: 0;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 14px 20px; z-index: 50; pointer-events: none;
+    }
+    .hud-panel {
+      background: linear-gradient(135deg,rgba(0,0,0,0.84),rgba(8,14,28,0.76));
+      border: 1px solid rgba(212,160,23,0.35); border-radius: 3px;
+      padding: 6px 18px; backdrop-filter: blur(14px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.04);
+      position: relative; overflow: hidden;
+    }
+    .hud-panel::after {
+      content:''; position:absolute; top:0; right:0; left:0; height:1px;
+      background: linear-gradient(90deg,transparent,var(--gold),transparent); opacity:0.45;
+    }
+    .hud-label {
+      font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
+      color:rgba(212,160,23,0.75); text-transform:uppercase; text-align:center;
+    }
+    .hud-value {
+      font-family:'Oswald',sans-serif; font-size:30px; font-weight:700;
+      color:#fff; text-align:center; line-height:1;
+      text-shadow: 0 0 18px rgba(255,255,255,0.25);
+    }
+    .hud-value.gold-text { color: var(--gold); }
+
+    /* ── TIMER ── */
+    #timer-display {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+      pointer-events: none; text-align: center; z-index:51;
+    }
+    #timer-label {
+      font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:3px;
+      color:rgba(212,160,23,0.75); text-transform:uppercase; margin-bottom:1px;
+    }
+    #timer-value {
+      font-family:'Oswald',sans-serif; font-size:36px; font-weight:700;
+      color:#fff; letter-spacing:0.04em; font-variant-numeric:tabular-nums;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    }
+    #timer-value.running { color: #fff; }
+    #timer-value.stopped { color: var(--gold); }
+    #timer-value.idle    { color: rgba(255,255,255,0.35); }
+
+    /* ── OBSTACLE TRACKER PIPS ── */
+    #course-hud {
+      position: fixed; top: 90px; left: 50%; transform: translateX(-50%);
+      text-align: center; pointer-events: none; z-index:50;
+    }
+    #obstacle-tracker { display: flex; gap: 6px; justify-content: center; margin-bottom: 5px; }
+    .obs-pip {
+      width: 26px; height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+      transition: all 0.3s;
+    }
+    .obs-pip.active { background: var(--gold); box-shadow: 0 0 10px var(--gold-glow); border-color: var(--gold); }
+    .obs-pip.done   { background: #3dc46e; border-color: #2e7d32; box-shadow: 0 0 6px rgba(61,196,110,0.5); }
+
+    /* ── COURSE MESSAGE ── */
+    #course-msg {
+      font-family:'Oswald',sans-serif; font-size:15px; letter-spacing:2px;
+      color: rgba(255,255,255,0.92); background: rgba(0,0,0,0.62);
+      backdrop-filter: blur(12px); padding: 7px 22px; border-radius: 2px;
+      border-right: 2px solid var(--gold); border-left: 2px solid var(--gold);
+      display: inline-block; min-height: 1.4em; opacity: 0.9;
+    }
+    #course-msg.warn { color: #ff5252; border-color: #ff5252; }
+    #course-msg.good { color: #3dc46e; border-color: #3dc46e; }
+    #course-msg.done { color: var(--gold); border-color: var(--gold); }
+
+    /* ── CONTROLS HINT ── */
+    #controls-hint {
+      position: fixed; bottom: 16px; right: 16px;
+      font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:1px;
+      color: rgba(255,255,255,0.3); line-height: 1.7;
+      pointer-events: none; text-align: right;
+    }
+
+    /* ── TOUCH CONTROLS ── */
+    #touch-controls {
+      display: none; position: fixed;
+      bottom: 0; left: 0; right: 0; top: 0; pointer-events: none;
+    }
+    #joystick-zone {
+      position: absolute; bottom: 0; right: 0;
+      width: 50%; height: 100%; pointer-events: all;
+    }
+    #joystick-base {
+      width: 132px; height: 132px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%,rgba(255,255,255,0.07),rgba(0,0,0,0.32));
+      border: 1.5px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07);
+      position: absolute; display: none; transform: translate(-50%, -50%);
+    }
+    #joystick-thumb {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%,rgba(255,255,255,0.92),rgba(175,175,175,0.65));
+      box-shadow: 0 4px 18px rgba(0,0,0,0.72);
+      position: absolute; display: none; transform: translate(-50%, -50%);
+    }
+    #jump-btn {
+      position: absolute; bottom: 50px; left: 50px;
+      width: 80px; height: 80px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #1a5a2a, #0d3a1a);
+      border: 2px solid rgba(212,160,23,0.5);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold); font-family:'Oswald',sans-serif; font-size: 0.85rem;
+      font-weight: 700; letter-spacing: 0.1em; pointer-events: all;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6); transition: all 0.15s;
+    }
+    #jump-btn:active { transform: scale(0.93); box-shadow: 0 0 22px var(--gold-glow); }
+
+    /* ── PENALTY FLASH ── */
+    #penalty-flash {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-family:'Oswald',sans-serif; font-size: 2.2rem; font-weight: 700;
+      color: #ff1744; text-shadow: 0 3px 12px rgba(0,0,0,0.8);
+      letter-spacing: 0.06em; pointer-events: none;
+      opacity: 0; transition: opacity 0.15s; white-space: nowrap; z-index:70;
+    }
+    #penalty-flash.show { opacity: 1; }
+
+    /* ── ANNOUNCER (big pop text) ── */
+    #announcer {
+      position: fixed; top: 36%; width: 100%; text-align: center;
+      font-family:'Oswald',sans-serif; font-size: 56px; font-weight: 700;
+      letter-spacing: 5px; text-transform: uppercase; pointer-events: none;
+      opacity: 0; transform: scale(0.45) translateY(28px);
+      transition: all 0.38s cubic-bezier(0.175,0.885,0.32,1.275);
+      z-index:70; text-shadow: 0 4px 20px rgba(0,0,0,0.95);
+    }
+    #announcer.pop { opacity: 1; transform: scale(1.06) translateY(0); }
+
+    /* ── NEWBEST FLASH ── */
+    #newbest-flash {
+      position: fixed; top: 42%; left: 50%; transform: translate(-50%, -50%);
+      font-family:'Oswald',sans-serif; font-size: 2rem; font-weight: 700;
+      color: var(--gold); text-shadow: 0 3px 16px rgba(0,0,0,0.8);
+      letter-spacing: 0.06em; pointer-events: none;
+      opacity: 0; transition: opacity 0.15s; white-space: nowrap; z-index:71;
+    }
+    #newbest-flash.show { opacity: 1; }
+
+    /* ── PB DISPLAY ── */
+    #pb-display {
+      position: fixed; top: 72px; left: 20px;
+      pointer-events: none; text-align: right; direction:ltr;
+      opacity: 0; transition: opacity 0.4s;
+    }
+    #pb-display.visible { opacity: 1; }
+    #pb-label {
+      font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
+      text-transform:uppercase; color: rgba(212,160,23,0.6);
+    }
+    #pb-value {
+      font-family:'Oswald',sans-serif; font-size:1.05rem; font-weight:700;
+      color: rgba(212,160,23,0.85); letter-spacing:0.04em;
+    }
+
+    /* ── LEVEL INDICATOR ── */
+    #level-indicator {
+      position: fixed; top: 14px; right: 20px;
+      pointer-events: none;
+    }
+
+    /* ── PAUSE BUTTON ── */
+    #pause-btn {
+      position: fixed; top: 14px; left: 20px;
+      background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 3px; padding: 8px 16px;
+      color: rgba(255,255,255,0.7); font-family:'Oswald',sans-serif;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; cursor: pointer;
+      z-index: 50; transition: all 0.2s; pointer-events: all;
+    }
+    #pause-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── COUNTDOWN OVERLAY ── */
+    #countdown-overlay {
+      display: none; position: fixed; inset: 0;
+      align-items: center; justify-content: center;
+      pointer-events: none; z-index: 90;
+    }
+    #countdown-overlay.visible { display: flex; }
+    #countdown-number {
+      font-family:'Oswald',sans-serif; font-size: 9rem; font-weight: 700;
+      color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,0.6);
+      animation: countPop 0.35s ease-out;
+      letter-spacing: 0.05em;
+    }
+    #countdown-number.go { color: var(--gold); font-size: 6rem; letter-spacing: 0.12em; }
+    @keyframes countPop {
+      from { transform: scale(1.8); opacity: 0; }
+      to   { transform: scale(1.0); opacity: 1; }
+    }
+
+    /* ── MODAL BASE ── */
+    .modal {
+      position: fixed; inset: 0; z-index: 200;
+      background: linear-gradient(160deg,rgba(3,6,14,0.98),rgba(7,14,30,0.97));
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; color: white; direction: rtl;
+    }
+    .modal.active { display: flex; }
+    .modal::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 65% 40% at 50% 0%,rgba(212,160,23,0.09) 0%,transparent 65%),
+                  radial-gradient(ellipse 40% 25% at 20% 100%,rgba(26,106,191,0.07) 0%,transparent 55%);
+    }
+    .gold-line {
+      width: 160px; height: 1px;
+      background: linear-gradient(90deg,transparent,var(--gold),transparent);
+      margin: 12px 0;
+    }
+    .modal h2 {
+      font-family:'Oswald',sans-serif; font-size: 42px; font-weight: 700;
+      letter-spacing: 6px; text-transform: uppercase; color: var(--gold);
+      margin-bottom: 2px; text-align: center; text-shadow: 0 0 45px var(--gold-glow);
+    }
+    .modal .subtitle {
+      font-family:'Oswald',sans-serif; font-size: 11px; letter-spacing: 5px;
+      color: rgba(255,255,255,0.35); text-align: center; margin-bottom: 16px;
+    }
+    .business-badge {
+      text-align: center; padding: 10px 28px; margin-bottom: 18px;
+      border-top: 1px solid rgba(212,160,23,0.18);
+      border-bottom: 1px solid rgba(212,160,23,0.18);
+    }
+    .business-name {
+      font-family:'Oswald',sans-serif; font-size: 24px; font-weight: 700;
+      letter-spacing: 8px; color: #fff; text-transform: uppercase;
+    }
+    .owner-info { font-size: 12px; color: var(--gold); margin-top: 3px; opacity: 0.85; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family:'Oswald',sans-serif; font-size: 17px; font-weight: 700;
+      letter-spacing: 4px; text-transform: uppercase;
+      background: linear-gradient(135deg,#1a5a2a,#0d3a1a);
+      color: var(--gold); border: 1px solid rgba(212,160,23,0.42);
+      padding: 12px 44px; border-radius: 2px; cursor: pointer; margin: 6px;
+      box-shadow: 0 4px 22px rgba(0,0,0,0.55); transition: all 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.65),0 0 22px rgba(212,160,23,0.22); }
+    .btn:active { transform: scale(0.97); }
+    .btn-ghost {
+      background: transparent; border-color: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.55);
+    }
+    .btn-danger { background: linear-gradient(135deg,#5a1a1a,#3a0d0d); border-color: rgba(255,100,100,0.4); color: #ff8888; }
+
+    /* Level/pause button within modals */
+    .level-btn {
+      display: inline-block; padding: 11px 28px; border-radius: 2px;
+      border: none; cursor: pointer; font-family:'Oswald',sans-serif;
+      font-size: 0.88rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; transition: all 0.15s; margin: 4px;
+    }
+    .level-btn:hover  { opacity: 0.88; transform: translateY(-2px); }
+    .level-btn:active { transform: scale(0.96); }
+    .btn-primary {
+      background: linear-gradient(135deg,#1a5a2a,#0d3a1a);
+      color: var(--gold); border: 1px solid rgba(212,160,23,0.42);
+      box-shadow: 0 4px 20px rgba(0,90,30,0.5);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, #f9a825, #ffd740);
+      color: #111; box-shadow: 0 4px 20px rgba(249,168,37,0.5);
+    }
+    .btn-ghost-sm {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ── LEVEL OVERLAY ── */
+    #level-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.72);
+      align-items: center; justify-content: center;
+      z-index: 100; animation: fadeIn 0.35s ease; direction: rtl;
+    }
+    #level-overlay.visible { display: flex; pointer-events: all; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    #level-card {
+      background: linear-gradient(160deg,rgba(3,6,14,0.97) 0%,rgba(7,14,30,0.97) 100%);
+      border: 1px solid rgba(212,160,23,0.35); border-radius: 3px;
+      padding: 32px 48px; text-align: center; max-width: 480px; width: 90vw;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+      position: relative; overflow: hidden;
+    }
+    #level-card::before {
+      content:''; position:absolute; top:0; right:0; left:0; height:1px;
+      background: linear-gradient(90deg,transparent,var(--gold),transparent); opacity:0.6;
+    }
+    #level-card.completion { border-color: rgba(212,160,23,0.6); }
+    #level-card.championship { border-color: rgba(212,160,23,0.8); box-shadow: 0 12px 60px rgba(212,160,23,0.2); }
+
+    #level-badge {
+      font-family:'Oswald',sans-serif; font-size:10px; font-weight:700;
+      letter-spacing: 4px; text-transform: uppercase; color: rgba(212,160,23,0.75);
+      margin-bottom: 5px;
+    }
+    #level-title {
+      font-family:'Oswald',sans-serif; font-size: 2rem; font-weight: 700;
+      color: #fff; letter-spacing: 0.06em; margin-bottom: 4px;
+      text-shadow: 0 2px 12px rgba(212,160,23,0.3);
+    }
+    #level-card.completion #level-title { color: var(--gold); }
+    #level-subtitle {
+      font-family:'Rubik',sans-serif; font-size: 0.85rem;
+      color: rgba(255,255,255,0.5); margin-bottom: 16px; letter-spacing: 0.03em;
+    }
+    #level-obstacles {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      justify-content: center; margin-bottom: 18px;
+    }
+    .level-obs-tag {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 2px; padding: 4px 12px;
+      font-family:'Oswald',sans-serif; font-size: 0.68rem; font-weight: 600;
+      color: rgba(255,255,255,0.65); letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    #level-final-time {
+      font-family:'Oswald',sans-serif; font-size: 2.6rem; font-weight: 700;
+      color: #fff; letter-spacing: 0.05em;
+      text-shadow: 0 2px 12px rgba(212,160,23,0.5); margin-bottom: 4px;
+    }
+    #level-time-label {
+      font-family:'Oswald',sans-serif; font-size: 9px; letter-spacing: 3px;
+      text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 12px;
+    }
+    #level-stars { font-size: 1.6rem; margin-bottom: 16px; letter-spacing: 0.1em; }
+    #level-btn-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 6px; }
+    #level-card.championship #level-title { font-size: 1.6rem; }
+
+    /* ── PAUSE OVERLAY ── */
+    #pause-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.68);
+      align-items: center; justify-content: center; z-index: 95;
+    }
+    #pause-overlay.visible { display: flex; pointer-events: all; }
+    #pause-card {
+      background: linear-gradient(160deg,rgba(3,6,14,0.97),rgba(7,14,30,0.97));
+      border: 1px solid rgba(212,160,23,0.35); border-radius: 3px;
+      padding: 32px 48px; text-align: center; min-width: 280px;
+      box-shadow: 0 12px 50px rgba(0,0,0,0.5); direction: rtl;
+      position: relative; overflow: hidden;
+    }
+    #pause-card::before {
+      content:''; position:absolute; top:0; right:0; left:0; height:1px;
+      background: linear-gradient(90deg,transparent,var(--gold),transparent); opacity:0.6;
+    }
+    #pause-card h2 {
+      font-family:'Oswald',sans-serif; font-size: 1.5rem; font-weight: 700;
+      color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px;
+    }
+    #pause-card .pause-sub {
+      font-family:'Oswald',sans-serif; font-size: 0.68rem; color: rgba(255,255,255,0.35);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 22px;
+    }
+    #pause-btn-col { display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── LEVEL SELECT ── */
+    #level-select-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      align-items: center; justify-content: center;
+      z-index: 110; animation: fadeIn 0.3s ease; overflow-y: auto;
+    }
+    #level-select-overlay.visible { display: flex; pointer-events: all; }
+    #level-select-card {
+      background: linear-gradient(160deg,rgba(3,6,14,0.98),rgba(7,14,30,0.98));
+      border: 1px solid rgba(212,160,23,0.35); border-radius: 3px;
+      padding: 32px 36px; text-align: center; max-width: 520px; width: 92vw;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.5); direction: rtl;
+      position: relative; overflow: hidden;
+    }
+    #level-select-card::before {
+      content:''; position:absolute; top:0; right:0; left:0; height:1px;
+      background: linear-gradient(90deg,transparent,var(--gold),transparent); opacity:0.6;
+    }
+    #level-select-card h2 {
+      font-family:'Oswald',sans-serif; font-size:1.3rem; font-weight:700;
+      color: var(--gold); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:5px;
+    }
+    #level-select-card .ls-sub {
+      font-family:'Oswald',sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.35);
+      letter-spacing:0.1em; text-transform:uppercase; margin-bottom:22px;
+    }
+    #level-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+    .ls-row {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 2px; padding: 10px 14px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ls-row:hover:not(.ls-locked) { background: rgba(212,160,23,0.07); border-color: rgba(212,160,23,0.4); }
+    .ls-row.ls-locked { opacity: 0.4; cursor: default; }
+    .ls-num {
+      font-family:'Oswald',sans-serif; font-size:1.3rem; font-weight:700;
+      color: var(--gold); width: 26px; flex-shrink: 0;
+    }
+    .ls-info { flex: 1; text-align: right; }
+    .ls-name {
+      font-family:'Oswald',sans-serif; font-size:0.88rem; font-weight:700;
+      color:#fff; letter-spacing:0.04em;
+    }
+    .ls-time { font-size:0.7rem; color:rgba(255,255,255,0.4); font-family:'Oswald',sans-serif; }
+    .ls-stars { font-size:1rem; letter-spacing:0.05em; }
+    .ls-lock  { font-size:1rem; }
+
+    /* finish overlay — kept hidden, replaced by level overlay */
+    #finish-overlay { display: none; }
+  </style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<!-- HUD top bar -->
+<div id="hud">
+  <div class="hud-panel">
+    <div class="hud-label">שלב</div>
+    <div class="hud-value gold-text" id="level-indicator-value">1</div>
+  </div>
+  <!-- timer is separate centred element -->
+  <div class="hud-panel" style="opacity:0;pointer-events:none;">
+    <div class="hud-label">‌</div><div class="hud-value">‌</div>
+  </div>
+</div>
+<div id="level-indicator"></div><!-- dummy for JS refs -->
+
+<!-- Centred competition timer -->
+<div id="timer-display">
+  <div id="timer-label">זמן</div>
+  <div id="timer-value" class="idle">00.00</div>
+</div>
+
+<!-- Obstacle tracker + course message -->
+<div id="course-hud">
+  <div id="obstacle-tracker"></div>
+  <div id="course-msg">הכנסו לאזור הזינוק</div>
+</div>
+
+<!-- Controls hint (desktop) -->
+<div id="controls-hint">חצים / WASD – תנועה &nbsp;|&nbsp; SPACE – קפיצה &nbsp;|&nbsp; ESC – השהיה</div>
+
+<!-- Pause button -->
+<button id="pause-btn">⏸ השהיה</button>
+
+<!-- Countdown overlay -->
+<div id="countdown-overlay">
+  <div id="countdown-number">3</div>
+</div>
+
+<!-- Announcer pop text -->
+<div id="announcer"></div>
+
+<!-- Pause menu -->
+<div id="pause-overlay">
+  <div id="pause-card">
+    <h2>⏸ השהיה</h2>
+    <div class="pause-sub">ESC לחזרה למשחק</div>
+    <div id="pause-btn-col">
+      <button class="level-btn btn-primary" id="pause-resume-btn">▶ המשך</button>
+      <button class="level-btn btn-ghost-sm" id="pause-restart-btn">↺ אתחל שלב</button>
+      <button class="level-btn btn-ghost-sm" id="pause-lvl1-btn">⏮ שלב 1</button>
+    </div>
+  </div>
+</div>
+
+<!-- Personal best -->
+<div id="pb-display">
+  <div id="pb-label">שיא אישי</div>
+  <div id="pb-value">--:--.--</div>
+</div>
+<div id="newbest-flash">🏆 שיא חדש!</div>
+
+<!-- Level start / completion overlay -->
+<div id="level-overlay">
+  <div id="level-card">
+    <div style="font-family:'Oswald';font-size:9px;letter-spacing:3px;color:rgba(212,160,23,0.7);text-transform:uppercase;margin-bottom:3px;">CoolDog · אג'יליטי כלבני</div>
+    <div class="gold-line"></div>
+    <div id="level-badge">שלב 1</div>
+    <div id="level-title">חימום</div>
+    <div id="level-subtitle">הגיע הזמן לרוץ!</div>
+    <div id="level-obstacles"></div>
+    <div id="level-final-time" style="display:none"></div>
+    <div id="level-time-label" style="display:none">זמן סיום</div>
+    <div id="level-stars" style="display:none"></div>
+    <div id="level-btn-row"></div>
+  </div>
+</div>
+
+<!-- Penalty flash -->
+<div id="penalty-flash"></div>
+
+<!-- Touch controls -->
+<div id="touch-controls">
+  <div id="joystick-zone">
+    <div id="joystick-base"></div>
+    <div id="joystick-thumb"></div>
+  </div>
+  <div id="jump-btn">קפיצה</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+//  BORDER COLLIE AGILITY GAME  –  v2
+// ═══════════════════════════════════════════════
+
+// ── Mobile detect ─────────────────────────────
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+              || ('ontouchstart' in window);
+if (isMobile) {
+  document.getElementById('touch-controls').style.display = 'block';
+  document.getElementById('controls-hint').style.display  = 'none';
+}
+
+// ── Renderer ──────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+// ── Scene ─────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0xb0d8f0, 55, 140);
+
+// ── Camera ────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 4, 8);
+camera.lookAt(0, 0, 0);
+
+// ── Lighting ──────────────────────────────────
+scene.add(new THREE.AmbientLight(0xfff0cc, 0.7));
+
+const sun = new THREE.DirectionalLight(0xfffbe0, 1.4);
+sun.position.set(20, 40, 15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { near: 0.5, far: 160, left: -60, right: 60, top: 60, bottom: -60 });
+scene.add(sun);
+
+// Soft fill from opposite side
+const fillLight = new THREE.DirectionalLight(0xaaddff, 0.3);
+fillLight.position.set(-10, 15, -10);
+scene.add(fillLight);
+
+// ── Ground — rich grass with stripes ──────────
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(200, 320),
+  new THREE.MeshLambertMaterial({ color: 0x4caf50 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.z = 60; // shift centre forward so ground covers z=-100 to z=220
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Alternating mow stripes along Z
+for (let z = -100; z < 220; z += 4) {
+  const stripe = new THREE.Mesh(
+    new THREE.PlaneGeometry(200, 2),
+    new THREE.MeshLambertMaterial({ color: 0x43a047, transparent: true, opacity: 0.5 })
+  );
+  stripe.rotation.x = -Math.PI / 2;
+  stripe.position.set(0, 0.005, z + 1);
+  scene.add(stripe);
+}
+
+// ── Arena boundary fence ───────────────────────
+function makeArenaFence() {
+  const postMat  = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const railMat  = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const FENCE_W  = 28; // half-width
+  const FENCE_H  = 145; // half-depth — covers z=-8 to z=137
+  const POST_H   = 1.3;
+  const SPACING  = 4;
+
+  // Posts + rails along all four sides
+  const sides = [
+    { axis: 'x', from: -FENCE_W, to: FENCE_W,  fixedAxis: 'z', fixedVal: -FENCE_H },
+    { axis: 'x', from: -FENCE_W, to: FENCE_W,  fixedAxis: 'z', fixedVal:  FENCE_H },
+    { axis: 'z', from: -FENCE_H, to: FENCE_H,  fixedAxis: 'x', fixedVal: -FENCE_W },
+    { axis: 'z', from: -FENCE_H, to: FENCE_H,  fixedAxis: 'x', fixedVal:  FENCE_W },
+  ];
+
+  sides.forEach(({ axis, from, to, fixedAxis, fixedVal }) => {
+    const len = to - from;
+    // Rail
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(
+      axis === 'x' ? len : 0.08,
+      0.08,
+      axis === 'z' ? len : 0.08
+    ), railMat);
+    rail.position.set(
+      fixedAxis === 'x' ? fixedVal : (from + to) / 2,
+      POST_H * 0.75,
+      fixedAxis === 'z' ? fixedVal : (from + to) / 2
+    );
+    scene.add(rail);
+
+    // Posts
+    for (let v = from; v <= to; v += SPACING) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, POST_H, 6), postMat);
+      post.position.set(
+        fixedAxis === 'x' ? fixedVal : v,
+        POST_H / 2,
+        fixedAxis === 'z' ? fixedVal : v
+      );
+      scene.add(post);
+    }
+  });
+}
+makeArenaFence();
+
+// ── Bunting flags along course sides ───────────
+function makeBuntingLine(x1, z1, x2, z2, numFlags, colors) {
+  const poleH = 3.5;
+  // Two end poles
+  [[x1, z1], [x2, z2]].forEach(([x, z]) => {
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.05, poleH, 6),
+      new THREE.MeshLambertMaterial({ color: 0xffffff })
+    );
+    pole.position.set(x, poleH / 2, z);
+    scene.add(pole);
+  });
+
+  // Flags hung along the line
+  for (let i = 0; i < numFlags; i++) {
+    const t = i / (numFlags - 1);
+    const fx = x1 + (x2 - x1) * t;
+    const fz = z1 + (z2 - z1) * t;
+    // Slight droop
+    const fy = poleH - Math.sin(t * Math.PI) * 0.4;
+
+    const col = colors[i % colors.length];
+    const flag = new THREE.Mesh(
+      new THREE.ConeGeometry(0.22, 0.4, 4),
+      new THREE.MeshLambertMaterial({ color: col })
+    );
+    flag.rotation.z = Math.PI; // point downward
+    flag.position.set(fx, fy, fz);
+    scene.add(flag);
+  }
+}
+
+const buntingColors = [0xff1744, 0xffeb3b, 0x2196f3, 0x4caf50, 0xff6f00, 0xe040fb];
+makeBuntingLine(-22, -8, -22, 135, 36, buntingColors);
+makeBuntingLine( 22, -8,  22, 135, 36, buntingColors);
+makeBuntingLine(-22, -8,  22, -8,  8, buntingColors);
+
+// ── Crowd spectators ───────────────────────────
+function makeSpectator(x, z, shirtColor, rotY) {
+  const g = new THREE.Group();
+  // Body
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 0.55, 0.25),
+    new THREE.MeshLambertMaterial({ color: shirtColor })
+  );
+  body.position.set(0, 0.85, 0);
+  g.add(body);
+  // Head
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.28, 0.28),
+    new THREE.MeshLambertMaterial({ color: [0xf5cba7, 0xe8b89a, 0xd4956a, 0xc68642][Math.floor(Math.random()*4)] })
+  );
+  head.position.set(0, 1.35, 0);
+  g.add(head);
+  // Arms raised in excitement (random)
+  const armAngle = Math.random() > 0.4 ? -Math.PI * 0.6 : -Math.PI * 0.1;
+  [-0.25, 0.25].forEach(sx => {
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.42, 0.12),
+      new THREE.MeshLambertMaterial({ color: shirtColor })
+    );
+    arm.position.set(sx * 2.2, 0.95, 0);
+    arm.rotation.z = sx > 0 ? armAngle : -armAngle;
+    g.add(arm);
+  });
+  g.position.set(x, 0, z);
+  g.rotation.y = rotY;
+  scene.add(g);
+  return g;
+}
+
+// Place crowds along the fence sides — store refs for crowd reactions
+const allSpectators = [];
+const crowdColors = [0xe53935,0x1e88e5,0x43a047,0xfb8c00,0x8e24aa,0x00acc1,0xf06292,0xffee58];
+for (let z = -5; z < 140; z += 3.5) {
+  allSpectators.push(makeSpectator(-24 + (Math.random()-0.5), z + (Math.random()-0.5)*1.5,
+    crowdColors[Math.floor(Math.random()*crowdColors.length)], Math.PI * 0.55));
+  allSpectators.push(makeSpectator( 24 + (Math.random()-0.5), z + (Math.random()-0.5)*1.5,
+    crowdColors[Math.floor(Math.random()*crowdColors.length)], -Math.PI * 0.55));
+}
+// Back row slightly elevated on bleachers
+for (let z = -5; z < 140; z += 4) {
+  const sp  = makeSpectator(-25.5, z, crowdColors[Math.floor(Math.random()*crowdColors.length)], Math.PI * 0.5);
+  sp.position.y = 0.5; allSpectators.push(sp);
+  const sp2 = makeSpectator(25.5, z, crowdColors[Math.floor(Math.random()*crowdColors.length)], -Math.PI * 0.5);
+  sp2.position.y = 0.5; allSpectators.push(sp2);
+}
+
+// Crowd reaction: wave arms for 2 seconds near an obstacle
+const crowdWaves = []; // { group, arms[], startTime, baseY }
+function triggerCrowdReaction(obsWorldZ) {
+  const now = performance.now();
+  allSpectators.forEach(sp => {
+    const dz = Math.abs(sp.position.z - obsWorldZ);
+    if (dz > 14) return; // only nearby spectators
+    // Find arm children (index 2,3 in group)
+    const arms = sp.children.filter((c, ci) => ci >= 2);
+    crowdWaves.push({ sp, arms, startTime: now, baseY: sp.position.y });
+  });
+}
+
+function tickCrowdWaves(now) {
+  for (let i = crowdWaves.length - 1; i >= 0; i--) {
+    const w = crowdWaves[i];
+    const t = (now - w.startTime) / 2000; // 0→1 over 2s
+    if (t >= 1) {
+      // Reset arms to original rest angles
+      w.arms.forEach((arm, ai) => { arm.rotation.z = (ai === 0 ? 0.4 : -0.4); });
+      w.sp.position.y = w.baseY;
+      crowdWaves.splice(i, 1);
+    } else {
+      // Wave arms up then back down with bounce
+      const wave = Math.sin(t * Math.PI * 3) * (1 - t);
+      w.arms.forEach((arm, ai) => {
+        arm.rotation.z = (ai === 0 ? 0.4 : -0.4) + (ai === 0 ? -1 : 1) * wave * 1.2;
+      });
+      // Bob up slightly
+      w.sp.position.y = w.baseY + Math.abs(Math.sin(t * Math.PI * 4)) * 0.15 * (1 - t);
+    }
+  }
+}
+
+// ── Trees (pushed outside arena) ──────────────
+function makeTree(x, z) {
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.25, 0.35, 2.5, 8),
+    new THREE.MeshLambertMaterial({ color: 0x5d4037 })
+  );
+  trunk.position.set(x, 1.25, z); trunk.castShadow = true; scene.add(trunk);
+  const top = new THREE.Mesh(
+    new THREE.SphereGeometry(1.9, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0x2e7d32 })
+  );
+  top.position.set(x, 3.8, z); top.castShadow = true; scene.add(top);
+  // Second smaller sphere for fullness
+  const top2 = new THREE.Mesh(
+    new THREE.SphereGeometry(1.3, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0x388e3c })
+  );
+  top2.position.set(x + 0.6, 4.6, z + 0.3); scene.add(top2);
+}
+[[-32,10],[-35,-5],[32,12],[35,0],[-30,30],[30,28],
+ [-33,50],[33,48],[-31,-10],[31,-8],[0,75]]
+  .forEach(([x,z]) => makeTree(x,z));
+
+// ═══════════════════════════════════════════════
+//  AGILITY COURSE  –  Jump · Jump · Tunnel · Jump
+// ═══════════════════════════════════════════════
+
+const COL_DEFAULT  = 0x90a4ae;  // grey-blue  – idle
+const COL_NEXT     = 0xffeb3b;  // bright yellow – next to clear
+const COL_DONE     = 0x00e676;  // bright green   – cleared
+const COL_WRONG    = 0xff1744;  // red     – wrong order flash
+
+// ── Shared number-disc builder ─────────────────
+function makeDisc(index, colHex) {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const cx = c.getContext('2d');
+  cx.fillStyle = colHex;
+  cx.beginPath(); cx.arc(32,32,28,0,Math.PI*2); cx.fill();
+  cx.fillStyle = '#111';
+  cx.font = 'bold 34px sans-serif';
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillText(String(index + 1), 32, 32);
+  const tex = new THREE.CanvasTexture(c);
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(0.32, 16),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide })
+  );
+  disc.position.set(0, 2.5, 0);
+  return { disc, tex, canvas: c, ctx: cx };
+}
+
+// ── Course jump builder ────────────────────────
+function makeCourseJump(x, z, index, rotY = 0, col = []) {
+  const g       = new THREE.Group();
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
+  const isNext  = index === 0;
+
+  // Taller, wider poles
+  [-1.4, 1.4].forEach(s => {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.2, 8), poleMat);
+    pole.position.set(s, 1.1, 0); pole.castShadow = true; g.add(pole);
+    // Base block
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.3),
+      new THREE.MeshLambertMaterial({ color: 0xdddddd }));
+    base.position.set(s, 0.09, 0); g.add(base);
+  });
+
+  // Striped bar — alternate red and white segments
+  const barGroup = new THREE.Group();
+  const BAR_LEN = 3.0;
+  const SEGS = 6;
+  const segLen = BAR_LEN / SEGS;
+  for (let s = 0; s < SEGS; s++) {
+    const segMat = new THREE.MeshLambertMaterial({
+      color: s % 2 === 0 ? (isNext ? 0xffeb3b : 0xe53935) : 0xffffff
+    });
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, segLen, 8), segMat);
+    seg.rotation.z = Math.PI / 2;
+    seg.position.set(-BAR_LEN / 2 + segLen * (s + 0.5), 0, 0);
+    barGroup.add(seg);
+  }
+  barGroup.position.set(0, 1.1, 0);
+  barGroup.castShadow = true;
+  g.add(barGroup);
+
+  const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
+  disc.position.y = 2.8;
+  g.add(disc);
+
+  g.position.set(x, 0, z); g.rotation.y = rotY;
+  scene.add(g);
+  col.push(g);
+
+  return {
+    type: 'jump', group: g,
+    barMat: barGroup.children[0].material,
+    barGroup,
+    disc, discTex: tex, canvas, ctx,
+    pos: new THREE.Vector3(x, 0, z),
+    barY: 1.1,          // height of the bar — player must be above this when crossing
+    triggerR: 2.2,
+    cleared: false, index,
+    crossState: 'before', // 'before' | 'cleared' — tracks Z crossing
+  };
+}
+
+// ── Tunnel builder ─────────────────────────────
+// Straight tunnel along Z axis. Dog runs INTO the entry mouth (south face)
+// and OUT of the exit mouth (north face). Entry faces -Z (where dog comes from),
+// exit faces +Z (away from start). Simple and unambiguous.
+
+function makeTunnel(cx, cz, index, col = []) {
+  const TUNNEL_LEN = 7.0;
+  const RADIUS     = 1.0;  // wider tunnel — easier to see and navigate
+  const SEGMENTS   = 20;
+  const SIDES      = 16;
+
+  // Entry mouth: dog approaches from -Z, so entry is at cz - TUNNEL_LEN/2
+  // Exit mouth:  dog exits at cz + TUNNEL_LEN/2
+  const entryPt = new THREE.Vector3(cx, RADIUS, cz - TUNNEL_LEN / 2);
+  const exitPt  = new THREE.Vector3(cx, RADIUS, cz + TUNNEL_LEN / 2);
+
+  // Straight line curve along Z
+  class LineCurve3D extends THREE.Curve {
+    constructor(a, b) { super(); this.a = a; this.b = b; }
+    getPoint(t) {
+      return new THREE.Vector3(
+        this.a.x + (this.b.x - this.a.x) * t,
+        this.a.y + (this.b.y - this.a.y) * t,
+        this.a.z + (this.b.z - this.a.z) * t,
+      );
+    }
+  }
+
+  const curve = new LineCurve3D(entryPt, exitPt);
+
+  // Outer shell
+  const outerMat = new THREE.MeshLambertMaterial({
+    color: index === 0 ? COL_NEXT : COL_DEFAULT,
+    side: THREE.FrontSide,
+  });
+  const outerGeo  = new THREE.TubeGeometry(curve, SEGMENTS, RADIUS, SIDES, false);
+  const outerMesh = new THREE.Mesh(outerGeo, outerMat);
+  outerMesh.castShadow = true; outerMesh.receiveShadow = true;
+  scene.add(outerMesh); col.push(outerMesh);
+
+  // Dark inner shell so tunnel opening is visible
+  const innerMat  = new THREE.MeshLambertMaterial({ color: 0x111122, side: THREE.BackSide });
+  const innerMesh = new THREE.Mesh(outerGeo, innerMat);
+  scene.add(innerMesh); col.push(innerMesh);
+
+  // Rings at entry and exit mouths — thin cylinders matching tunnel radius exactly
+  // CylinderGeometry with openEnded sits flush with the tube cross-section
+  const entryRingMat = new THREE.MeshLambertMaterial({ color: 0x42a5f5, side: THREE.DoubleSide });
+  const exitRingMat  = new THREE.MeshLambertMaterial({ color: 0xef5350, side: THREE.DoubleSide });
+  const ringThickness = 0.10;
+  const ringGeo = new THREE.CylinderGeometry(RADIUS + ringThickness, RADIUS + ringThickness, 0.12, SIDES, 1, true);
+
+  const entryRing = new THREE.Mesh(ringGeo, entryRingMat);
+  entryRing.position.copy(entryPt);
+  entryRing.rotation.x = Math.PI / 2;
+  scene.add(entryRing); col.push(entryRing);
+
+  const exitRing = new THREE.Mesh(ringGeo, exitRingMat);
+  exitRing.position.copy(exitPt);
+  exitRing.rotation.x = Math.PI / 2;
+  scene.add(exitRing); col.push(exitRing);
+
+  // Number disc above tunnel centre
+  const { disc, tex, canvas, ctx } = makeDisc(index, index === 0 ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, RADIUS * 2 + 1.2, cz);
+  scene.add(disc); col.push(disc);
+
+  return {
+    type: 'tunnel',
+    outerMat, disc, discTex: tex, canvas, ctx,
+    // Ground-level trigger positions (Y=0) so XZ distance check works
+    entryPos: new THREE.Vector3(cx, 0, cz - TUNNEL_LEN / 2),
+    exitPos:  new THREE.Vector3(cx, 0, cz + TUNNEL_LEN / 2),
+    entryR: 2.0,
+    exitR:  2.0,
+    state: 'idle',
+    cleared: false,
+    index,
+    lastEntry: 0,
+    lastExit:  0,
+  };
+}
+
+// ── Weave poles builder ────────────────────────
+// 6 poles in a straight line along the Z axis, spaced 1.0 apart.
+// Dog must enter from the LEFT of pole 0 (negative X side) and
+// alternate sides for each subsequent pole.
+// Correct entry side: dog's X < poleX when passing pole 0.
+// Wrong entry → +5 second penalty.
+
+function makeWeave(cx, cz, index, col = []) {
+  const NUM_POLES  = 6;
+  const SPACING    = 1.3;
+  const POLE_H     = 2.2;   // taller poles
+  const poleMeshes = [];
+  const poleMats   = [];
+
+  for (let p = 0; p < NUM_POLES; p++) {
+    // Bold blue/white striped pole using two stacked cylinders
+    const baseCol = p % 2 === 0 ? 0x1565c0 : 0xffffff;
+    const mat = new THREE.MeshLambertMaterial({ color: baseCol });
+
+    // Bottom half
+    const botMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, POLE_H * 0.5, 8),
+      new THREE.MeshLambertMaterial({ color: 0x1565c0 }));
+    botMesh.position.set(cx, POLE_H * 0.25, cz + p * SPACING);
+    botMesh.castShadow = true;
+    scene.add(botMesh); col.push(botMesh);
+
+    // Top half (alternate)
+    const topMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, POLE_H * 0.5, 8),
+      new THREE.MeshLambertMaterial({ color: 0xffffff }));
+    topMesh.position.set(cx, POLE_H * 0.75, cz + p * SPACING);
+    topMesh.castShadow = true;
+    scene.add(topMesh); col.push(topMesh);
+
+    poleMeshes.push(botMesh);
+    poleMats.push(mat);
+  }
+
+  // Highlight ring around base of pole 0 (entry pole)
+  const entryRingMat = new THREE.MeshLambertMaterial({
+    color: index === 0 ? COL_NEXT : COL_DEFAULT,
+  });
+  const entryRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.22, 0.05, 6, 16),
+    entryRingMat
+  );
+  entryRing.rotation.x = Math.PI / 2;
+  entryRing.position.set(cx, 0.05, cz);
+  scene.add(entryRing); col.push(entryRing);
+
+  // Number disc above pole 0
+  const { disc, tex, canvas, ctx } = makeDisc(index, index === 0 ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, POLE_H + 0.6, cz + (NUM_POLES - 1) * SPACING / 2);
+  scene.add(disc); col.push(disc);
+
+  // Z positions of each pole for crossing detection
+  const poleZs = Array.from({ length: NUM_POLES }, (_, p) => cz + p * SPACING);
+
+  return {
+    type: 'weave',
+    entryRingMat, disc, discTex: tex, canvas, ctx,
+    poleMats,
+    cx,                    // X centre of the poles
+    poleZs,                // Z of each pole
+    NUM_POLES,
+    // State
+    cleared: false,
+    index,
+    active: false,         // true once dog has passed entry gate
+    nextPole: 0,           // which pole to pass next
+    expectedSide: -1,      // -1 = must be left of pole (x < cx), +1 = right (x > cx)
+    penaltyApplied: false,
+    lastTriggerTime: 0,
+  };
+}
+
+// ── Contact obstacle builder ───────────────────
+// Builds either an A-frame or Dog Walk along the Z axis.
+//
+// A-FRAME:  Two wide planks meeting at a peak (~2m tall, 2m each side)
+// DOG WALK: Three planks – up-ramp, flat bridge, down-ramp (~1.2m high)
+//
+// CONTACT ZONES: Yellow panels at the bottom of entry and exit planks.
+// RULE: Dog must cross the EXIT contact zone while grounded (y ≈ 0).
+//       If dog's Z passes the exit-zone boundary while y > CONTACT_MAX_Y,
+//       a +5s penalty is applied.
+
+function makeContactObstacle(obsType, cx, cz, index, col = []) {
+  const CONTACT_COL   = 0xf9a825;  // yellow contact zone
+  const PLANK_COL     = 0xc8a96e;  // wood tan
+  const FRAME_COL     = 0x888888;  // grey supports
+  const CONTACT_MAX_Y = 0.35;      // dog must be ≤ this height to count as touching
+
+  const planks = [];   // mesh refs for colour-change on clear
+  const contactMats = [];
+
+  // Helper: flat box plank at a tilted angle
+  function makePlank(w, h, d, mat, px, py, pz, rx) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(px, py, pz);
+    m.rotation.x = rx;
+    m.castShadow = true; m.receiveShadow = true;
+    scene.add(m); col.push(m);
+    planks.push(m);
+    return m;
+  }
+
+  // Helper: contact-zone panel (flat yellow slab on a plank surface)
+  function makeContactZone(px, py, pz, rx, w, d) {
+    const mat = new THREE.MeshLambertMaterial({ color: CONTACT_COL });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.06, d), mat);
+    m.position.set(px, py, pz);
+    m.rotation.x = rx;
+    scene.add(m); col.push(m);
+    contactMats.push(mat);
+    return m;
+  }
+
+  const plankMat  = new THREE.MeshLambertMaterial({ color: PLANK_COL });
+  const frameMat  = new THREE.MeshLambertMaterial({ color: FRAME_COL });
+
+  // Positions returned for trigger logic
+  let entryContactZ, exitContactZ, structureCentreZ, peakY;
+  const PLANK_W = 1.2;
+
+  if (obsType === 'aframe') {
+    // ── A-FRAME ───────────────────────────────
+    // Two planks meet at a ridge ~2.0 m high, each 2.5 m along the slope.
+    // Plank ground footprint = 2.5 * cos(angle) ≈ 2.0 m each side.
+    const PLANK_LEN  = 2.6;
+    const PEAK_H     = 2.0;
+    // angle of each plank from horizontal
+    const angle      = Math.asin(PEAK_H / PLANK_LEN);        // ≈ 50°
+    const groundProj = PLANK_LEN * Math.cos(angle);           // horizontal extent
+    const midY       = PEAK_H / 2;
+    const midZ_up    = cz - groundProj / 2;                    // centre of entry plank
+    const midZ_dn    = cz + groundProj / 2;                    // centre of exit plank
+
+    // Entry plank (slopes up toward cz)
+    makePlank(PLANK_W, 0.12, PLANK_LEN, plankMat,
+      cx, midY, midZ_up, -angle);
+    // Exit plank (slopes down away from cz)
+    makePlank(PLANK_W, 0.12, PLANK_LEN, plankMat,
+      cx, midY, midZ_dn,  angle);
+
+    // Support frames at base of each plank
+    [-1, 1].forEach(s => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,PEAK_H,8), frameMat);
+      post.position.set(cx + s * PLANK_W * 0.45, PEAK_H / 2, cz);
+      scene.add(post); col.push(post);
+    });
+
+    // Contact zones — bottom 0.6 m of each plank (projected onto ground)
+    const CONTACT_DEPTH = 0.7;
+    // Entry contact zone
+    const eZ = cz - groundProj + CONTACT_DEPTH / 2;
+    makeContactZone(cx, 0.04, eZ, 0, PLANK_W, CONTACT_DEPTH);
+    // Exit contact zone
+    const xZ = cz + groundProj - CONTACT_DEPTH / 2;
+    makeContactZone(cx, 0.04, xZ, 0, PLANK_W, CONTACT_DEPTH);
+
+    entryContactZ   = cz - groundProj;   // dog enters from this Z (entry foot)
+    exitContactZ    = cz + groundProj;   // dog exits at this Z (exit foot)
+    structureCentreZ = cz;
+    peakY           = PEAK_H;
+
+  } else {
+    // ── DOG WALK ──────────────────────────────
+    // Up-ramp | flat bridge | down-ramp
+    // Plank dims: 0.9 m wide, 3.6 m ramp length, 4.0 m bridge
+    const RAMP_LEN   = 3.0;
+    const BRIDGE_LEN = 4.0;
+    const WALK_H     = 1.2;
+    const rampAngle  = Math.asin(WALK_H / RAMP_LEN);
+    const rampGround = RAMP_LEN * Math.cos(rampAngle);
+
+    const DW = 0.9;   // width
+    const bridgeZ = cz;  // bridge centred here
+    const rampUpZ = bridgeZ - BRIDGE_LEN / 2 - rampGround / 2;
+    const rampDnZ = bridgeZ + BRIDGE_LEN / 2 + rampGround / 2;
+
+    // Up ramp
+    makePlank(DW, 0.10, RAMP_LEN, plankMat,
+      cx, WALK_H / 2, rampUpZ, -rampAngle);
+    // Flat bridge
+    makePlank(DW, 0.10, BRIDGE_LEN, plankMat,
+      cx, WALK_H, bridgeZ, 0);
+    // Down ramp
+    makePlank(DW, 0.10, RAMP_LEN, plankMat,
+      cx, WALK_H / 2, rampDnZ, rampAngle);
+
+    // Legs supporting the bridge
+    [-BRIDGE_LEN * 0.3, BRIDGE_LEN * 0.3].forEach(dz => {
+      [-1, 1].forEach(s => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.07,WALK_H,8), frameMat);
+        leg.position.set(cx + s * DW * 0.4, WALK_H / 2, bridgeZ + dz);
+        scene.add(leg); col.push(leg);
+      });
+    });
+
+    // Contact zones at foot of each ramp
+    const CONTACT_DEPTH = 0.8;
+    const eZ = rampUpZ - rampGround / 2 + CONTACT_DEPTH / 2;
+    makeContactZone(cx, 0.04, eZ, 0, DW, CONTACT_DEPTH);
+    const xZ = rampDnZ + rampGround / 2 - CONTACT_DEPTH / 2;
+    makeContactZone(cx, 0.04, xZ, 0, DW, CONTACT_DEPTH);
+
+    entryContactZ    = rampUpZ - rampGround / 2;
+    exitContactZ     = rampDnZ + rampGround / 2;
+    structureCentreZ = cz;
+    peakY            = WALK_H;
+  }
+
+  // Status indicator: a small coloured band at the entry of the obstacle
+  // so setObsColour has something visible to tint (matches jump/tunnel pattern)
+  const statusMat = new THREE.MeshLambertMaterial({ color: index === 0 ? COL_NEXT : COL_DEFAULT });
+  const indicatorGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8);
+  // Place a small post just before the entry contact zone
+  const indPost = new THREE.Mesh(indicatorGeo, statusMat);
+  indPost.position.set(cx, 0.2, entryContactZ - 0.3);
+  scene.add(indPost); col.push(indPost);
+
+  // Number disc above structure centre
+  const { disc, tex, canvas, ctx } = makeDisc(index, index === 0 ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, peakY + 1.4, structureCentreZ);
+  scene.add(disc); col.push(disc);
+
+  return {
+    type: 'contact',
+    obsType,
+    disc, discTex: tex, canvas, ctx,
+    contactMats,
+    statusMat,
+    cx,
+    entryContactZ,
+    exitContactZ,
+    CONTACT_MAX_Y: 0.35,
+    LATERAL_RANGE: 1.6,
+    // State: 'idle' | 'onObstacle' | 'cleared'
+    state: 'idle',
+    cleared: false,
+    index,
+    penaltyApplied: false,
+    lastTriggerTime: 0,
+  };
+}
+
+// ── Tire jump builder ──────────────────────────
+// A suspended tire ring — autopilot arcs dog through it
+function makeTireJump(cx, cz, index, col = []) {
+  const TIRE_R   = 0.65;
+  const POST_H   = 2.2;
+  const isNext   = index === 0;
+
+  // Two support posts
+  const postMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
+  [-1.1, 1.1].forEach(sx => {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, POST_H, 8), postMat);
+    post.position.set(cx + sx, POST_H / 2, cz);
+    post.castShadow = true;
+    scene.add(post); col.push(post);
+  });
+  // Cross bar
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.3, 8),
+    new THREE.MeshLambertMaterial({ color: 0xdddddd }));
+  bar.rotation.z = Math.PI / 2;
+  bar.position.set(cx, POST_H - 0.15, cz);
+  scene.add(bar); col.push(bar);
+
+  // Tire — torus ring
+  const tireMat = new THREE.MeshLambertMaterial({ color: index === 0 ? 0xffeb3b : 0x222222 });
+  const tire = new THREE.Mesh(new THREE.TorusGeometry(TIRE_R, 0.14, 10, 24), tireMat);
+  tire.position.set(cx, 1.5, cz);
+  tire.castShadow = true;
+  scene.add(tire); col.push(tire);
+
+  // Hanging chains (cylinders)
+  [-0.55, 0.55].forEach(sx => {
+    const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.55, 6),
+      new THREE.MeshLambertMaterial({ color: 0x888888 }));
+    chain.position.set(cx + sx, POST_H - 0.45, cz);
+    scene.add(chain); col.push(chain);
+  });
+
+  const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, POST_H + 0.5, cz);
+  scene.add(disc); col.push(disc);
+
+  return {
+    type: 'tire',
+    tireMat, disc, discTex: tex, canvas, ctx,
+    pos: new THREE.Vector3(cx, 0, cz),
+    tireY: 1.5,
+    tireR: TIRE_R,
+    triggerR: 2.0,
+    cleared: false, index,
+    state: 'idle',
+  };
+}
+
+// ── Pause table builder ────────────────────────
+// Dog must stop on the table and wait 3 seconds
+function makePauseTable(cx, cz, index, col = []) {
+  const TW = 1.2, TD = 1.2, TH = 0.7;
+  const isNext = index === 0;
+
+  // Legs
+  const legMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,TH,8), legMat);
+    leg.position.set(cx + sx * TW*0.38, TH/2, cz + sz * TD*0.38);
+    scene.add(leg); col.push(leg);
+  });
+
+  // Table top
+  const topMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
+  const top = new THREE.Mesh(new THREE.BoxGeometry(TW, 0.1, TD), topMat);
+  top.position.set(cx, TH + 0.05, cz);
+  top.receiveShadow = true;
+  scene.add(top); col.push(top);
+
+  // Pause indicator (ring on top)
+  const ringMat = new THREE.MeshLambertMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.8 });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.42, 20), ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(cx, TH + 0.12, cz);
+  scene.add(ring); col.push(ring);
+
+  const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, TH + 1.3, cz);
+  scene.add(disc); col.push(disc);
+
+  return {
+    type: 'pause',
+    topMat, ring, disc, discTex: tex, canvas, ctx,
+    pos: new THREE.Vector3(cx, 0, cz),
+    tableY: TH,
+    triggerR: 1.4,
+    cleared: false, index,
+    state: 'idle',   // 'idle' | 'waiting' | 'cleared'
+    waitStart: 0,
+    WAIT_TIME: 3000, // ms to hold still
+  };
+}
+
+// ── Seesaw builder ─────────────────────────────
+// Like a dog walk but the plank tips at the midpoint — autopilot handles the pivot moment
+function makeSeesaw(cx, cz, index, col = []) {
+  const PLANK_LEN = 4.0, PLANK_W = 1.0, PIVOT_H = 0.55;
+  const isNext = index === 0;
+
+  // Pivot support
+  const pivotMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+  const pivotPost = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, PIVOT_H, 8), pivotMat);
+  pivotPost.position.set(cx, PIVOT_H / 2, cz);
+  scene.add(pivotPost); col.push(pivotPost);
+
+  // Pivot cylinder (the axle)
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, PLANK_W + 0.3, 8), pivotMat);
+  axle.rotation.z = Math.PI / 2;
+  axle.position.set(cx, PIVOT_H, cz);
+  scene.add(axle); col.push(axle);
+
+  // Plank (starts entry-end-down, exit-end-up)
+  const plankMat = new THREE.MeshLambertMaterial({ color: 0xc8a96e });
+  const plank = new THREE.Mesh(new THREE.BoxGeometry(PLANK_W, 0.1, PLANK_LEN), plankMat);
+  // Slight initial tilt — entry end low, exit end high
+  plank.position.set(cx, PIVOT_H, cz);
+  plank.rotation.x = -0.18; // entry end down ~10°
+  plank.castShadow = true;
+  scene.add(plank); col.push(plank);
+
+  // Contact zones (yellow ends)
+  const contMat = new THREE.MeshLambertMaterial({ color: 0xf9a825 });
+  [-1, 1].forEach(s => {
+    const cz2 = new THREE.Mesh(new THREE.BoxGeometry(PLANK_W, 0.12, 0.7), contMat);
+    cz2.position.set(cx, PIVOT_H + s * Math.sin(0.18) * PLANK_LEN * 0.5 + 0.05,
+                     cz + s * (PLANK_LEN / 2 - 0.35));
+    scene.add(cz2); col.push(cz2);
+  });
+
+  const statusMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
+  const indPost = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8), statusMat);
+  indPost.position.set(cx, 0.2, cz - PLANK_LEN / 2 - 0.3);
+  scene.add(indPost); col.push(indPost);
+
+  const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, PIVOT_H + 1.6, cz);
+  scene.add(disc); col.push(disc);
+
+  const entryContactZ = cz - PLANK_LEN / 2;
+  const exitContactZ  = cz + PLANK_LEN / 2;
+
+  return {
+    type: 'seesaw',
+    plank, statusMat, disc, discTex: tex, canvas, ctx,
+    cx, cz,
+    entryContactZ, exitContactZ,
+    pivotH: PIVOT_H,
+    plankLen: PLANK_LEN,
+    cleared: false, index,
+    state: 'idle',
+    LATERAL_RANGE: 1.5,
+  };
+}
+
+//  Obstacle comment block
+// ── Level definitions ─────────────────────────
+const LEVEL_DEFS = [
+  {
+    name: 'חימום', subtitle: 'שלושה קפיצות – צאו לדרך!',
+    gold: 14000, silver: 22000,
+    obstacles: [
+      { type: 'jump', x:  0, z:  0 },
+      { type: 'jump', x:  4, z: 14 },
+      { type: 'jump', x: -3, z: 28 },
+    ],
+  },
+  {
+    name: 'מנהרת האמן', subtitle: 'קפיצות ומנהרה מחכות לכם!',
+    gold: 20000, silver: 32000,
+    obstacles: [
+      { type: 'jump',   x:  0, z:  0 },
+      { type: 'jump',   x:  4, z: 14 },
+      { type: 'tunnel', x: -3, z: 28 },
+      { type: 'jump',   x:  3, z: 42 },
+    ],
+  },
+  {
+    name: 'אמן הסללום', subtitle: 'קפיצות, צמיג וסללום!',
+    gold: 32000, silver: 50000,
+    obstacles: [
+      { type: 'jump',   x:  0, z:  0 },
+      { type: 'tunnel', x: -3, z: 14 },
+      { type: 'tire',   x:  3, z: 28 },
+      { type: 'weave',  x: -2, z: 42 },
+      { type: 'jump',   x:  3, z: 58 },
+    ],
+  },
+  {
+    name: 'מגע קסם', subtitle: 'A-Frame, הליכון, צמיג ושולחן עמידה!',
+    gold: 50000, silver: 75000,
+    obstacles: [
+      { type: 'jump',    x:  0, z:  0  },
+      { type: 'tire',    x:  4, z: 14  },
+      { type: 'tunnel',  x: -3, z: 28  },
+      { type: 'pause',   x:  3, z: 42  },
+      { type: 'aframe',  x: -3, z: 58  },
+      { type: 'dogwalk', x:  3, z: 76  },
+    ],
+  },
+  {
+    name: 'אליפות', subtitle: 'המסלול המלא – כל המכשולים!',
+    gold: 80000, silver: 120000,
+    obstacles: [
+      { type: 'jump',    x:  0, z:  0  },
+      { type: 'tunnel',  x: -3, z: 14  },
+      { type: 'tire',    x:  3, z: 28  },
+      { type: 'weave',   x: -2, z: 42  },
+      { type: 'pause',   x:  3, z: 58  },
+      { type: 'aframe',  x: -3, z: 72  },
+      { type: 'seesaw',  x:  3, z: 90  },
+      { type: 'dogwalk', x: -3, z: 108 },
+      { type: 'jump',    x:  0, z: 124 },
+    ],
+  },
+];
+
+// ── Active level state ─────────────────────────
+let currentLevel = 0; // 0-indexed
+
+// ── Build a level's obstacle list ─────────────
+let courseObstacles = [];
+let sceneObstacleObjects = []; // THREE.Object3D refs to remove on reset
+
+function clearSceneObstacles() {
+  sceneObstacleObjects.forEach(obj => scene.remove(obj));
+  sceneObstacleObjects = [];
+}
+
+// All obstacle builders accept an optional `col` array to push
+// their scene objects into, so we can remove them cleanly later.
+// We pass sceneObstacleObjects during buildLevel.
+
+function buildLevel(levelIndex) {
+  clearSceneObstacles();
+
+  const def = LEVEL_DEFS[levelIndex];
+  courseObstacles = def.obstacles.map((spec, idx) => {
+    if (spec.type === 'jump')    return makeCourseJump(spec.x, spec.z, idx, 0, sceneObstacleObjects);
+    if (spec.type === 'tunnel')  return makeTunnel(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'weave')   return makeWeave(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'aframe')  return makeContactObstacle('aframe',  spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'dogwalk') return makeContactObstacle('dogwalk', spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'tire')    return makeTireJump(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'pause')   return makePauseTable(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'seesaw')  return makeSeesaw(spec.x, spec.z, idx, sceneObstacleObjects);
+    return null;
+  }).filter(Boolean);
+
+  courseObstacles.forEach(o => {
+    setObsColour(o, o.index === 0 ? COL_NEXT : COL_DEFAULT);
+    refreshDiscTexture(o);
+  });
+}
+
+
+// ── Course state ──────────────────────────────
+let currentObstacle = 0;
+let courseComplete   = false;
+
+let obsLastTrigger = [];
+const OBS_COOLDOWN   = 2000;
+
+// ── UI helpers ─────────────────────────────────
+let pipEls = [];
+const trackerEl = document.getElementById('obstacle-tracker');
+const msgEl    = document.getElementById('course-msg');
+let msgTimer   = null;
+
+function buildPips(count) {
+  trackerEl.innerHTML = '';
+  pipEls = [];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'obs-pip' + (i === 0 ? ' active' : '');
+    el.id = `pip-${i}`;
+    el.textContent = String(i + 1);
+    trackerEl.appendChild(el);
+    pipEls.push(el);
+  }
+}
+
+// Label names per obstacle type
+function obsLabel(i) {
+  const obs = courseObstacles[i];
+  if (!obs) return `מכשול ${i+1}`;
+  if (obs.type === 'tunnel')  return `מנהרה (${i+1})`;
+  if (obs.type === 'weave')   return `סללום (${i+1})`;
+  if (obs.type === 'contact') return `${obs.obsType === 'aframe' ? 'A-Frame' : 'הליכון'} (${i+1})`;
+  if (obs.type === 'tire')    return `צמיג (${i+1})`;
+  if (obs.type === 'pause')   return `שולחן עמידה (${i+1})`;
+  if (obs.type === 'seesaw')  return `נדנדה (${i+1})`;
+  return `קפיצה ${i+1}`;
+}
+
+function showMsg(text, cls, duration = 2200) {
+  msgEl.textContent = text;
+  msgEl.className   = cls;
+  clearTimeout(msgTimer);
+  if (duration > 0) {
+    msgTimer = setTimeout(() => {
+      if (!courseComplete)
+        { msgEl.textContent = `הבא: ${obsLabel(currentObstacle)}`; msgEl.className = ''; }
+    }, duration);
+  }
+}
+
+function refreshPips() {
+  pipEls.forEach((el, i) => {
+    el.className = 'obs-pip';
+    if (i < currentObstacle)        el.classList.add('done');
+    else if (i === currentObstacle) el.classList.add('active');
+  });
+}
+
+function refreshDiscTexture(obs) {
+  const { canvas, ctx, index, cleared } = obs;
+  ctx.clearRect(0, 0, 64, 64);
+  const col = cleared                      ? '#4caf50'
+            : index === currentObstacle    ? '#ffeb3b'
+            : '#ffffff';
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(32,32,28,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.font = 'bold 34px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(index + 1), 32, 32);
+  obs.discTex.needsUpdate = true;
+}
+
+function setObsColour(obs, hex) {
+  if (obs.type === 'jump') {
+    // Colour all bar segments
+    if (obs.barGroup) {
+      obs.barGroup.children.forEach((seg, i) => {
+        // Keep alternating white segments, only colour the even ones
+        if (i % 2 === 0) seg.material.color.setHex(hex);
+      });
+    } else if (obs.barMat) {
+      obs.barMat.color.setHex(hex);
+    }
+  }
+  if (obs.type === 'tunnel')  obs.outerMat.color.setHex(hex);
+  if (obs.type === 'weave')   obs.entryRingMat.color.setHex(hex);
+  if (obs.type === 'contact') obs.statusMat.color.setHex(hex);
+  if (obs.type === 'tire')    obs.tireMat.color.setHex(hex);
+  if (obs.type === 'pause')   obs.topMat.color.setHex(hex);
+  if (obs.type === 'seesaw')  obs.statusMat.color.setHex(hex);
+}
+
+// Initialise colours + discs
+courseObstacles.forEach(o => {
+  setObsColour(o, o.index === 0 ? COL_NEXT : COL_DEFAULT);
+  refreshDiscTexture(o);
+});
+
+// ── Announcer pop ─────────────────────────────
+const announcerEl = document.getElementById('announcer');
+let announcerTimer = null;
+function popAnnouncer(text, color = '#ffffff') {
+  announcerEl.textContent = text;
+  announcerEl.style.color = color;
+  announcerEl.classList.remove('pop');
+  void announcerEl.offsetWidth;
+  announcerEl.classList.add('pop');
+  clearTimeout(announcerTimer);
+  announcerTimer = setTimeout(() => announcerEl.classList.remove('pop'), 1400);
+}
+
+// ── Clear an obstacle by index ─────────────────
+function clearObstacle(i, now) {
+  const obs = courseObstacles[i];
+  obs.cleared = true;
+  setObsColour(obs, COL_DONE);
+  refreshDiscTexture(obs);
+  currentObstacle++;
+
+  // Crowd reacts near this obstacle!
+  const entry = getObsEntry(obs);
+  triggerCrowdReaction(entry.z);
+  popAnnouncer('✓', '#3dc46e');
+
+  if (currentObstacle >= courseObstacles.length) {
+    courseComplete = true;
+    pipEls.forEach(el => { el.className = 'obs-pip done'; });
+    showMsg('🏆 השלב הושלם! כלב מעולה!', 'done', 0);
+    stopTimer(now);
+    popAnnouncer('🏆 שלם!', '#d4a017');
+  } else {
+    setObsColour(courseObstacles[currentObstacle], COL_NEXT);
+    refreshDiscTexture(courseObstacles[currentObstacle]);
+    refreshPips();
+    const next = obsLabel(currentObstacle);
+    showMsg(`✅ כל הכבוד! עכשיו: ${next}`, 'good', 2000);
+  }
+}
+
+// ── Wrong obstacle flash ───────────────────────
+function wrongObstacle(obs, now) {
+  setObsColour(obs, COL_WRONG);
+  setTimeout(() => { if (!obs.cleared) setObsColour(obs, COL_DEFAULT); }, 600);
+  showMsg(`⚠️ סדר שגוי! עשה ${obsLabel(currentObstacle)} קודם!`, 'warn', 2500);
+}
+
+// ── Penalty system ────────────────────────────
+const penaltyEl    = document.getElementById('penalty-flash');
+const PENALTY_MS   = 5000;
+let penaltyFlashTimer = null;
+
+function applyPenalty() {
+  // Shift the timer start backward so elapsed time increases by 5s
+  if (timerRunning) timerStart -= PENALTY_MS;
+  // Flash on screen
+  penaltyEl.textContent = '+5 שניות';
+  penaltyEl.classList.add('show');
+  clearTimeout(penaltyFlashTimer);
+  penaltyFlashTimer = setTimeout(() => penaltyEl.classList.remove('show'), 1800);
+  showMsg('⚠️ כניסה שגויה! +5 שניות עונש!', 'warn', 2800);
+}
+
+// ── Weave detection needs previous Z ─────────
+let prevPlayerZ = 0;
+
+// ═══════════════════════════════════════════════
+//  AUTOPILOT  –  Smooth dog guidance through obstacles
+// ═══════════════════════════════════════════════
+//
+//  When the dog enters a tunnel, weave, or contact obstacle,
+//  autopilot takes over: input is ignored, the dog follows a
+//  pre-computed path of waypoints at a fixed speed.
+//
+//  autopilot = null when inactive
+//  autopilot = { waypoints, wpIndex, speed, onDone, obsIndex }
+
+let autopilot = null;
+
+function buildTunnelPath(obs) {
+  // Straight line entry → exit, 6 waypoints
+  const pts = [];
+  const N = 6;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    pts.push(new THREE.Vector3(
+      obs.entryPos.x + (obs.exitPos.x - obs.entryPos.x) * t,
+      0,
+      obs.entryPos.z + (obs.exitPos.z - obs.entryPos.z) * t,
+    ));
+  }
+  return pts;
+}
+
+function buildWeavePath(obs) {
+  // Snake left/right through each pole
+  const pts = [];
+  // Approach point before first pole
+  pts.push(new THREE.Vector3(obs.cx - 0.7, 0, obs.poleZs[0] - 1.5));
+  for (let p = 0; p < obs.NUM_POLES; p++) {
+    const side = (p % 2 === 0) ? -0.7 : 0.7; // alternate sides
+    pts.push(new THREE.Vector3(obs.cx + side, 0, obs.poleZs[p]));
+  }
+  // Exit point after last pole
+  pts.push(new THREE.Vector3(obs.cx, 0, obs.poleZs[obs.NUM_POLES - 1] + 1.5));
+  return pts;
+}
+
+function buildContactPath(obs) {
+  // Smooth arc: entry → peak → exit
+  // Sample 10 points along the obstacle length
+  const pts = [];
+  const N = 10;
+  const entryZ = obs.entryContactZ;
+  const exitZ  = obs.exitContactZ;
+  const peakZ  = (entryZ + exitZ) / 2;
+  const peakY  = obs.CONTACT_MAX_Y !== undefined ? (obs.obsType === 'aframe' ? 2.1 : 1.3) : 1.5;
+
+  for (let i = 0; i <= N; i++) {
+    const t  = i / N;
+    const pz = entryZ + (exitZ - entryZ) * t;
+    // Parabolic height: peaks in the middle
+    const py = Math.sin(t * Math.PI) * peakY;
+    pts.push(new THREE.Vector3(obs.cx, py, pz));
+  }
+  return pts;
+}
+
+function startAutopilot(obsIndex, waypoints, speed, onDone) {
+  // Snap dog to first waypoint
+  player.pos.copy(waypoints[0]);
+  player.vel.set(0, 0, 0);
+
+  // Immediately face the direction of travel so no spin-around occurs
+  if (waypoints.length > 1) {
+    const dx = waypoints[1].x - waypoints[0].x;
+    const dz = waypoints[1].z - waypoints[0].z;
+    if (Math.abs(dx) + Math.abs(dz) > 0.001) {
+      dogYaw = Math.atan2(dx, dz);
+    }
+  }
+
+  autopilot = {
+    waypoints,
+    wpIndex: 1,
+    speed,
+    onDone,
+    obsIndex,
+  };
+  gameInputLocked = true;
+}
+
+function stopAutopilot() {
+  autopilot = null;
+  gameInputLocked = false;
+}
+
+function tickAutopilot(dt) {
+  if (!autopilot) return false;
+
+  const { waypoints, speed } = autopilot;
+  const target = waypoints[autopilot.wpIndex];
+
+  // Move toward current waypoint
+  const dx = target.x - player.pos.x;
+  const dy = target.y - player.pos.y;
+  const dz = target.z - player.pos.z;
+  const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+  const step = speed * dt;
+
+  if (dist <= step) {
+    // Reached waypoint — snap and advance
+    player.pos.copy(target);
+    autopilot.wpIndex++;
+
+    if (autopilot.wpIndex >= waypoints.length) {
+      // Done — fire callback and release control
+      const cb = autopilot.onDone;
+      stopAutopilot();
+      if (cb) cb();
+      return true;
+    }
+  } else {
+    // Step toward waypoint
+    player.pos.x += (dx / dist) * step;
+    player.pos.y += (dy / dist) * step;
+    player.pos.z += (dz / dist) * step;
+  }
+
+  // Face direction of travel — same convention as normal movement: raw atan2, no offset
+  const nx = target.x - player.pos.x;
+  const nz = target.z - player.pos.z;
+  if (Math.abs(nx) + Math.abs(nz) > 0.001) {
+    const targetYaw = Math.atan2(nx, nz);
+    let diff = targetYaw - dogYaw;
+    while (diff >  Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    dogYaw += diff * Math.min(1.0, 16 * dt);
+  }
+
+  // Keep grounded except on contact obstacles
+  if (player.pos.y < 0) player.pos.y = 0;
+
+  return true;
+}
+
+// ── Course check — called each frame ──────────
+function checkCourse(playerPos, now) {
+  if (courseComplete) return;
+
+  courseObstacles.forEach((obs, i) => {
+    if (obs.cleared) return;
+
+    if (obs.type === 'jump') {
+      const dx = playerPos.x - obs.pos.x;
+      const dz = playerPos.z - obs.pos.z;
+      const xzDist = Math.sqrt(dx*dx + dz*dz);
+      if (xzDist > obs.triggerR) {
+        if (obs.crossState !== 'before') obs.crossState = 'before';
+        return;
+      }
+
+      const barDown = obs.barGroup.position.y <= 0.15;
+      const aboveBar = playerPos.y >= obs.barY * 0.55;
+      const airborne = !player.isGrounded;
+
+      if (obs.crossState === 'before') {
+        if (barDown) {
+          // Bar already knocked — just walk through, no jump needed, no cooldown
+          if (xzDist < 1.2) {
+            obs.crossState = 'cleared';
+            if (i === currentObstacle) clearObstacle(i, now);
+            else wrongObstacle(obs, now);
+          }
+        } else if (aboveBar && airborne) {
+          // Clean jump over standing bar
+          obs.crossState = 'cleared';
+          if (now - obsLastTrigger[i] < OBS_COOLDOWN) return;
+          obsLastTrigger[i] = now;
+          if (i === currentObstacle) clearObstacle(i, now);
+          else wrongObstacle(obs, now);
+        } else if (!airborne && xzDist < 1.0) {
+          // Ran through upright bar — knock it down
+          if (now - obsLastTrigger[i] < OBS_COOLDOWN) return;
+          obsLastTrigger[i] = now;
+          obs.barGroup.position.y = 0.08;
+          if (i === currentObstacle) {
+            applyPenalty();
+            showMsg('🐾 קפץ מעל המוט! +5 שניות עונש', 'warn', 2500);
+          } else {
+            wrongObstacle(obs, now);
+          }
+        }
+      }
+
+    } else if (obs.type === 'tunnel') {
+      if (autopilot && autopilot.obsIndex === i) return; // already running
+      const dxE = playerPos.x - obs.entryPos.x;
+      const dzE = playerPos.z - obs.entryPos.z;
+      const distEntry = Math.sqrt(dxE*dxE + dzE*dzE);
+      if (obs.state === 'idle') {
+        const approachingEntry = playerPos.z <= obs.entryPos.z + 1.0;
+        if (distEntry < obs.entryR && approachingEntry) {
+          if (i !== currentObstacle) { wrongObstacle(obs, now); return; }
+          obs.state = 'entered';
+          showMsg('🐾 דרך המנהרה!', 'good', 0);
+          startAutopilot(i, buildTunnelPath(obs), 9, () => {
+            obs.state = 'cleared';
+            clearObstacle(i, performance.now());
+          });
+        }
+      }
+
+    } else if (obs.type === 'weave') {
+      if (autopilot && autopilot.obsIndex === i) return; // already running
+      if (i !== currentObstacle) {
+        const d = Math.abs(playerPos.x - obs.cx);
+        const inZRange = playerPos.z >= obs.poleZs[0] - 1.5 &&
+                         playerPos.z <= obs.poleZs[obs.NUM_POLES - 1] + 1.5;
+        if (d < 1.4 && inZRange && now - obsLastTrigger[i] > OBS_COOLDOWN) {
+          obsLastTrigger[i] = now; wrongObstacle(obs, now);
+        }
+        return;
+      }
+      // Trigger autopilot when dog approaches the start of the weave
+      const dToEntry = Math.sqrt(
+        (playerPos.x - obs.cx) ** 2 +
+        (playerPos.z - obs.poleZs[0]) ** 2
+      );
+      if (dToEntry < 2.2 && !obs.active) {
+        obs.active = true;
+        showMsg('🐾 סללום!', 'good', 0);
+        startAutopilot(i, buildWeavePath(obs), 5, () => {
+          clearObstacle(i, performance.now());
+        });
+      }
+
+    } else if (obs.type === 'contact') {
+      if (autopilot && autopilot.obsIndex === i) return; // already running
+      const lateralOk = Math.abs(playerPos.x - obs.cx) < obs.LATERAL_RANGE + 0.5;
+      if (obs.state === 'idle') {
+        if (lateralOk && playerPos.z > obs.entryContactZ - 1.5 && playerPos.z < obs.entryContactZ + 1.0) {
+          if (i !== currentObstacle) {
+            if (now - obsLastTrigger[i] < OBS_COOLDOWN) return;
+            obsLastTrigger[i] = now; wrongObstacle(obs, now); return;
+          }
+          obs.state = 'onObstacle';
+          const name = obs.obsType === 'aframe' ? 'A-Frame' : 'הליכון';
+          showMsg(`🐾 על ה${name}!`, 'good', 0);
+          startAutopilot(i, buildContactPath(obs), 6, () => {
+            obs.state = 'cleared';
+            clearObstacle(i, performance.now());
+          });
+        }
+      }
+
+    } else if (obs.type === 'tire') {
+      if (autopilot && autopilot.obsIndex === i) return;
+      if (obs.state === 'cleared') return;
+      const dx = playerPos.x - obs.pos.x;
+      const dz = playerPos.z - obs.pos.z;
+      const xzDist = Math.sqrt(dx*dx + dz*dz);
+      if (obs.state === 'idle' && xzDist < 2.5) {
+        if (i !== currentObstacle) { wrongObstacle(obs, now); return; }
+        obs.state = 'entering';
+        showMsg('🐾 דרך הצמיג!', 'good', 0);
+        // Arc path: approach at ground → rise to tire centre → land back at ground
+        const cx = obs.pos.x, cz2 = obs.pos.z, tireY = obs.tireY;
+        const dogBodyH = 1.1; // dog body centre height when standing
+        // Peak = tire centre minus half dog height so body fits through ring
+        const peakY = Math.max(0.3, tireY - dogBodyH * 0.6);
+        const pts = [];
+        const N = 16;
+        for (let k = 0; k <= N; k++) {
+          const t = k / N;
+          const pz = cz2 - 2.8 + 5.6 * t;
+          // Bell curve peaking exactly at tire centre (t=0.5)
+          const py = Math.sin(t * Math.PI) * peakY;
+          pts.push(new THREE.Vector3(cx, Math.max(0, py), pz));
+        }
+        startAutopilot(i, pts, 8, () => {
+          obs.state = 'cleared';
+          clearObstacle(i, performance.now());
+        });
+      }
+
+    } else if (obs.type === 'pause') {
+      if (autopilot && autopilot.obsIndex === i) return;
+      const dx = playerPos.x - obs.pos.x;
+      const dz = playerPos.z - obs.pos.z;
+      const xzDist = Math.sqrt(dx*dx + dz*dz);
+      if (obs.state === 'idle' && xzDist < 2.5) {
+        if (i !== currentObstacle) { wrongObstacle(obs, now); return; }
+        obs.state = 'walking_on';
+        showMsg('🐾 שולחן עמידה — עמוד דומם 3 שניות!', 'good', 0);
+        const cx = obs.pos.x, cz2 = obs.pos.z, tableY = obs.tableY;
+        // tableY=0.7 is leg height; table top surface = tableY + 0.1 (top slab thickness)
+        // Dog stands on top: y=0 means on ground, so on table y = tableY + 0.1
+        const topY = tableY + 0.1;
+        // Approach → step onto near edge at table height → walk to centre
+        const pts = [
+          new THREE.Vector3(playerPos.x, 0,    playerPos.z),
+          new THREE.Vector3(cx,          0,    cz2 - 0.8), // approach close on ground
+          new THREE.Vector3(cx,          topY, cz2 - 0.4), // step up onto edge
+          new THREE.Vector3(cx,          topY, cz2),        // centre of table
+        ];
+        startAutopilot(i, pts, 4, () => {
+          obs.state = 'waiting';
+          obs.waitStart = performance.now();
+          gameInputLocked = true;
+          // Pin player on table surface
+          player.pos.set(cx, topY, cz2);
+          player.vel.set(0, 0, 0);
+          const countdown = setInterval(() => {
+            const elapsed = performance.now() - obs.waitStart;
+            // Keep pinned while waiting
+            player.pos.set(cx, topY, cz2);
+            player.vel.set(0, 0, 0);
+            const remaining = Math.ceil((obs.WAIT_TIME - elapsed) / 1000);
+            if (elapsed < obs.WAIT_TIME) {
+              showMsg(`⏱ עוד ${remaining}...`, 'good', 0);
+            } else {
+              clearInterval(countdown);
+              obs.state = 'step_down';
+              // Smooth walk off far edge back to ground
+              const exitPts = [
+                new THREE.Vector3(cx, topY, cz2),
+                new THREE.Vector3(cx, topY, cz2 + 0.5), // far edge
+                new THREE.Vector3(cx, 0,    cz2 + 1.4), // ground
+              ];
+              startAutopilot(i, exitPts, 3, () => {
+                obs.state = 'cleared';
+                gameInputLocked = false;
+                clearObstacle(i, performance.now());
+              });
+            }
+          }, 300);
+        });
+      }
+
+    } else if (obs.type === 'seesaw') {
+      if (autopilot && autopilot.obsIndex === i) return;
+      const lateralOk = Math.abs(playerPos.x - obs.cx) < obs.LATERAL_RANGE;
+      if (obs.state === 'idle') {
+        if (lateralOk && playerPos.z > obs.entryContactZ - 1.5 && playerPos.z < obs.entryContactZ + 1.0) {
+          if (i !== currentObstacle) {
+            if (now - obsLastTrigger[i] < OBS_COOLDOWN) return;
+            obsLastTrigger[i] = now; wrongObstacle(obs, now); return;
+          }
+          obs.state = 'onObstacle';
+          showMsg('🐾 על הנדנדה! תרגיש את ההטיה!', 'good', 0);
+
+          // Plank dimensions: length=4, pivot at centre (z=cz), pivot height=0.55
+          // Entry tilt: -0.18 rad (entry end down), exit tilt: +0.18 rad (entry end up)
+          // Dog sits ON TOP of the plank surface (plank thickness=0.1, so +0.05 above centre)
+          const pivH = obs.pivotH;          // 0.55
+          const half = obs.plankLen / 2;    // 2.0
+          const tilt = 0.18;               // initial tilt angle (entry end down)
+          const plankSurface = 0.05;       // half plank thickness
+
+          const pts = [];
+          const N = 20;
+          for (let k = 0; k <= N; k++) {
+            const t = k / N;
+            const pz = obs.entryContactZ + (obs.exitContactZ - obs.entryContactZ) * t;
+            // Local position along plank from centre: negative = entry side
+            const localZ = pz - obs.cz;
+            // Current tilt angle: transitions from -tilt to +tilt after halfway
+            let currentTilt;
+            if (t < 0.45) {
+              currentTilt = -tilt; // entry end down, climbing
+            } else if (t < 0.6) {
+              // Smooth tip-over around pivot
+              const tipT = (t - 0.45) / 0.15;
+              currentTilt = -tilt + (2 * tilt) * (tipT * tipT * (3 - 2 * tipT));
+            } else {
+              currentTilt = tilt; // exit end down, descending
+            }
+            // Y of dog = pivot height + localZ * sin(tilt) + plank surface
+            const py = pivH + localZ * Math.sin(currentTilt) + plankSurface;
+            pts.push(new THREE.Vector3(obs.cx, Math.max(0, py), pz));
+          }
+
+          startAutopilot(i, pts, 3.5, () => {
+            if (obs.plank) obs.plank.rotation.x = tilt;
+            obs.state = 'cleared';
+            clearObstacle(i, performance.now());
+          });
+        }
+      }
+    }  // end seesaw
+  });
+
+  prevPlayerZ = playerPos.z;
+}
+
+// ── Live seesaw plank tilt ────────────────────
+function updateSeesawTilt() {
+  courseObstacles.forEach(obs => {
+    if (obs.type !== 'seesaw' || obs.state !== 'onObstacle' || !obs.plank) return;
+    if (!autopilot || autopilot.obsIndex !== obs.index) return;
+    // t along the path [0..1]
+    const totalWp = autopilot.waypoints.length - 1;
+    const t = Math.min(1, (autopilot.wpIndex - 1) / totalWp);
+    const tilt = 0.18;
+    let angle;
+    if (t < 0.45) {
+      angle = -tilt;
+    } else if (t < 0.6) {
+      const tipT = (t - 0.45) / 0.15;
+      angle = -tilt + 2 * tilt * (tipT * tipT * (3 - 2 * tipT));
+    } else {
+      angle = tilt;
+    }
+    obs.plank.rotation.x = angle;
+  });
+}
+
+// Billboard discs always face camera
+function updateDiscs() {
+  courseObstacles.forEach(o => o.disc.lookAt(camera.position));
+}
+
+// ── Start line — placed a few units behind obstacle 1 ─────────────────
+// Two upright posts + a horizontal banner + a flat ground stripe
+// ── Timer state ───────────────────────────────
+const timerValueEl  = document.getElementById('timer-value');
+// finishOverlay replaced by level system
+const finishOverlay = { classList: { add: () => {}, remove: () => {} } };
+const finishTimeBig = { textContent: '' };
+
+let timerRunning  = false;
+let timerStarted  = false;   // true once the dog has crossed the start line
+let timerStart    = 0;       // performance.now() when timer began
+let timerFinal    = 0;       // elapsed ms at finish
+let startLineCrossed = false;
+
+// The start line trigger zone — dog must pass z > 4 (into the course)
+const START_LINE_Z     = 4.0;
+const START_LINE_COOLDOWN = 2000; // ms — ignore re-crossings briefly
+let startLineCooldown  = 0;
+
+function formatTime(ms) {
+  const secs  = ms / 1000;
+  const m     = Math.floor(secs / 60);
+  const s     = secs % 60;
+  if (m > 0) {
+    return `${m}:${s.toFixed(2).padStart(5, '0')}`;
+  }
+  return s.toFixed(2).padStart(5, '0');
+}
+
+function startTimer(now) {
+  timerRunning = true;
+  timerStarted = true;
+  timerStart   = now;
+  timerValueEl.className = 'running';
+}
+
+function stopTimer(now) {
+  if (!timerRunning) return;
+  timerRunning = false;
+  timerFinal   = now - timerStart;
+  const formatted = formatTime(timerFinal);
+  timerValueEl.textContent = formatted;
+  timerValueEl.className   = 'stopped';
+  // Show level completion overlay
+  showLevelComplete(formatted);
+}
+
+function tickTimer(now) {
+  if (!timerRunning) return;
+  timerValueEl.textContent = formatTime(now - timerStart);
+}
+
+function checkStartLine(playerPos, now) {
+  if (timerStarted) return;   // already started, ignore
+  if (now - startLineCooldown < START_LINE_COOLDOWN) return;
+
+  // Trigger when dog crosses from z > START_LINE_Z (moving toward course)
+  // The course obstacles are at z = -5, 2, 8 — dog spawn is at z = 0
+  // Start line is at z = +4. Dog moves in -Z direction initially (toward obstacle 1).
+  // So we trigger when dog's z drops below START_LINE_Z while moving.
+  if (playerPos.z < START_LINE_Z && !timerStarted) {
+    startLineCooldown = now;
+    startTimer(now);
+  }
+}
+// ═══════════════════════════════════════════════
+//  BORDER COLLIE MODEL
+// ═══════════════════════════════════════════════
+
+// Materials palette
+const MAT = {
+  black: new THREE.MeshLambertMaterial({ color: 0x111111 }),
+  white: new THREE.MeshLambertMaterial({ color: 0xefefef }),
+  nose:  new THREE.MeshLambertMaterial({ color: 0x0d0d0d }),
+  eye:   new THREE.MeshLambertMaterial({ color: 0x3b2314 }),
+  eyeW:  new THREE.MeshLambertMaterial({ color: 0xffffff }),
+};
+
+const dogGroup = new THREE.Group();
+
+// Body
+const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 1.0), MAT.black);
+body.position.set(0, 0.85, 0);
+body.castShadow = true;
+dogGroup.add(body);
+
+// Belly
+const belly = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.38, 0.75), MAT.white);
+belly.position.set(0, -0.04, 0.05);
+body.add(belly);
+
+// Collar (white shoulder ring)
+const collar = new THREE.Mesh(new THREE.BoxGeometry(0.57, 0.12, 0.18), MAT.white);
+collar.position.set(0, 0.1, -0.41);
+body.add(collar);
+
+// Head group — pivot point lets us bob the head naturally
+const headGroup = new THREE.Group();
+headGroup.position.set(0, 0.28, -0.52);
+body.add(headGroup);
+
+const head = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.34, 0.38), MAT.black);
+head.castShadow = true;
+headGroup.add(head);
+
+// Blaze (white stripe down face)
+const blaze = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.28, 0.05), MAT.white);
+blaze.position.set(0, 0.01, -0.18);
+head.add(blaze);
+
+// Muzzle
+const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.22), MAT.white);
+muzzle.position.set(0, -0.06, -0.26);
+headGroup.add(muzzle);
+
+// Nose
+const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.05), MAT.nose);
+noseMesh.position.set(0, 0.03, -0.12);
+muzzle.add(noseMesh);
+
+// Eyes
+function makeEye(side) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), MAT.eyeW));
+  const iris = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 8), MAT.eye);
+  iris.position.z = -0.03;
+  g.add(iris);
+  g.position.set(side * 0.1, 0.05, -0.19);
+  head.add(g);
+}
+makeEye(-1); makeEye(1);
+
+// Ears
+function makeEar(side) {
+  const ear = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.08), MAT.black);
+  ear.position.set(side * 0.18, 0.21, 0.02);
+  ear.rotation.z = side * 0.25;
+  headGroup.add(ear);
+}
+makeEar(-1); makeEar(1);
+
+// Tail — pivot group so wag rotates the whole tail
+const tailGroup = new THREE.Group();
+tailGroup.position.set(0, 0.1, 0.5);
+body.add(tailGroup);
+
+const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.025, 0.55, 6), MAT.black);
+tail.rotation.x = -0.7;
+tail.position.y = 0.22;
+tail.castShadow = true;
+tailGroup.add(tail);
+
+const tailTip = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.015, 0.14, 6), MAT.white);
+tailTip.position.y = 0.34;
+tail.add(tailTip);
+
+// Legs — array of pivot groups, one per leg
+// Each group is parented to body; rotation.x drives the swing.
+// Layout (body local space, dog faces -Z):
+//   front = -Z,  rear = +Z,  left = -X,  right = +X
+const legs = [];
+function makeLeg(xOff, zOff) {
+  const g = new THREE.Group();
+  g.position.set(xOff, -0.2, zOff);
+  body.add(g);
+
+  const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 0.32, 6), MAT.black);
+  upper.position.y = -0.16;
+  g.add(upper);
+
+  const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.04, 0.28, 6), MAT.black);
+  lower.position.y = -0.28;
+  upper.add(lower);
+
+  // White sock on front legs only (zOff < 0 = front in body-local space)
+  if (zOff < 0) {
+    const sock = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.038, 0.12, 6), MAT.white);
+    sock.position.y = -0.1;
+    lower.add(sock);
+  }
+
+  legs.push(g);
+}
+makeLeg(-0.18, -0.32); // front-left   → legs[0]
+makeLeg( 0.18, -0.32); // front-right  → legs[1]
+makeLeg(-0.18,  0.28); // rear-left    → legs[2]
+makeLeg( 0.18,  0.28); // rear-right   → legs[3]
+
+// Apply shadow casting to the whole dog hierarchy
+dogGroup.traverse(c => { if (c.isMesh) c.castShadow = true; });
+// The model is built facing -Z; rotate 180° so it faces +Z to match movement
+dogGroup.rotation.y = Math.PI;
+scene.add(dogGroup);
+
+// ═══════════════════════════════════════════════
+//  PLAYER / PHYSICS STATE
+// ═══════════════════════════════════════════════
+const player = {
+  pos:        new THREE.Vector3(0, 0, 0),
+  vel:        new THREE.Vector3(0, 0, 0),
+  speed:      9.0,
+  isGrounded: true,
+  jumpVel:    8.5,
+  gravity:    -18,
+};
+
+let dogYaw = Math.PI;     // dog faces -Z toward the course at spawn
+const GROUND_Y = 0;
+
+// ── Keyboard input ────────────────────────────
+const keys = { w: false, a: false, s: false, d: false, space: false };
+document.addEventListener('keydown', e => {
+  switch(e.code){
+    case 'KeyW': case 'ArrowUp':    keys.w=true;  e.preventDefault(); break;
+    case 'KeyA': case 'ArrowLeft':  keys.a=true;  e.preventDefault(); break;
+    case 'KeyS': case 'ArrowDown':  keys.s=true;  e.preventDefault(); break;
+    case 'KeyD': case 'ArrowRight': keys.d=true;  e.preventDefault(); break;
+    case 'Space': e.preventDefault(); keys.space=true; break;
+  }
+});
+document.addEventListener('keyup', e => {
+  switch(e.code){
+    case 'KeyW': case 'ArrowUp':    keys.w=false;  break;
+    case 'KeyA': case 'ArrowLeft':  keys.a=false;  break;
+    case 'KeyS': case 'ArrowDown':  keys.s=false;  break;
+    case 'KeyD': case 'ArrowRight': keys.d=false;  break;
+    case 'Space': keys.space=false; break;
+  }
+});
+
+// ── Virtual joystick ──────────────────────────
+const joystick = { active:false, startX:0, startY:0, dx:0, dy:0, maxRadius:80 };
+const JOYSTICK_DEADZONE = 0.12; // ignore tiny movements
+const jZone  = document.getElementById('joystick-zone');
+const jBase  = document.getElementById('joystick-base');
+const jThumb = document.getElementById('joystick-thumb');
+
+jZone.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const rect = jZone.getBoundingClientRect();
+  // Spawn base at touch point
+  joystick.active = true;
+  joystick.startX = t.clientX;
+  joystick.startY = t.clientY;
+  joystick.dx = 0; joystick.dy = 0;
+  // Position base + thumb at touch point
+  const lx = t.clientX - rect.left;
+  const ly = t.clientY - rect.top;
+  jBase.style.left  = lx + 'px';
+  jBase.style.top   = ly + 'px';
+  jBase.style.display  = 'block';
+  jThumb.style.left = lx + 'px';
+  jThumb.style.top  = ly + 'px';
+  jThumb.style.display = 'block';
+}, { passive: false });
+
+jZone.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!joystick.active) return;
+  const t = e.changedTouches[0];
+  const rect = jZone.getBoundingClientRect();
+  updateJoy(t.clientX, t.clientY, rect);
+}, { passive: false });
+
+['touchend','touchcancel'].forEach(ev =>
+  jZone.addEventListener(ev, () => {
+    joystick.active = false; joystick.dx = 0; joystick.dy = 0;
+    jBase.style.display  = 'none';
+    jThumb.style.display = 'none';
+  })
+);
+
+function updateJoy(cx, cy, rect) {
+  let dx = cx - joystick.startX;
+  let dy = cy - joystick.startY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const R = joystick.maxRadius;
+  if (dist > R) { dx *= R/dist; dy *= R/dist; }
+  joystick.dx = dx / R;
+  joystick.dy = dy / R;
+  // Apply dead zone — ignore tiny drifts
+  if (Math.abs(joystick.dx) < JOYSTICK_DEADZONE) joystick.dx = 0;
+  if (Math.abs(joystick.dy) < JOYSTICK_DEADZONE) joystick.dy = 0;
+  // Move thumb visually (clamped to base radius)
+  const bx = parseFloat(jBase.style.left);
+  const by = parseFloat(jBase.style.top);
+  jThumb.style.left = (bx + dx) + 'px';
+  jThumb.style.top  = (by + dy) + 'px';
+}
+
+// ── Jump button ───────────────────────────────
+let touchJump = false;
+const jumpBtn = document.getElementById('jump-btn');
+jumpBtn.addEventListener('touchstart', e => { e.preventDefault(); touchJump=true;  }, { passive:false });
+jumpBtn.addEventListener('touchend',   e => { e.preventDefault(); touchJump=false; });
+
+// ── Camera constants ──────────────────────────
+const CAM_DIST   = 6.5;
+const CAM_HEIGHT = 3.5;
+const smoothCam  = new THREE.Vector3(0, CAM_HEIGHT, CAM_DIST);  // behind spawn, facing course
+
+// ── Reusable movement vectors ─────────────────
+const camFwd   = new THREE.Vector3();
+const camRight = new THREE.Vector3();
+const moveDir  = new THREE.Vector3();
+const UP       = new THREE.Vector3(0, 1, 0);
+
+// ── Animation state ───────────────────────────
+let legTime  = 0;
+let wagTime  = 0;
+let prevJump = false;
+
+// ── Main loop ─────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // ══ 1. INPUT ════════════════════════════════
+  let inputX = 0, inputZ = 0;
+  // Block all movement during pause or countdown
+  if (!isPaused && !gameInputLocked) {
+    if (isMobile) {
+      inputX =  joystick.dx;
+      inputZ =  joystick.dy;    // screen down → backward
+    } else {
+      if (keys.a) inputX -= 1;
+      if (keys.d) inputX += 1;
+      if (keys.w) inputZ -= 1;  // W → forward → negative view-Z
+      if (keys.s) inputZ += 1;
+    }
+  }
+  const moving = (inputX !== 0 || inputZ !== 0);
+
+  // ══ 2. CAMERA-RELATIVE MOVEMENT ═════════════
+  camera.getWorldDirection(camFwd);
+  camFwd.y = 0;
+  camFwd.normalize();
+  camRight.crossVectors(camFwd, UP).normalize();
+
+  // If autopilot is active it drives player.pos and dogYaw directly
+  const onAutopilot = tickAutopilot(dt);
+
+  if (!onAutopilot) {
+    moveDir.set(0, 0, 0);
+    if (moving) {
+      moveDir.addScaledVector(camFwd,  -inputZ);
+      moveDir.addScaledVector(camRight, inputX);
+      if (moveDir.lengthSq() > 0) moveDir.normalize();
+      player.vel.x = moveDir.x * player.speed;
+      player.vel.z = moveDir.z * player.speed;
+    } else {
+      player.vel.x *= 0.08;
+      player.vel.z *= 0.08;
+    }
+
+    // ══ 3. JUMP ══════════════════════════════════
+    const jumpNow = isMobile ? touchJump : keys.space;
+    if (jumpNow && !prevJump && player.isGrounded) {
+      player.vel.y = player.jumpVel;
+      player.isGrounded = false;
+    }
+    prevJump = jumpNow;
+
+    // ══ 4. GRAVITY + INTEGRATE ═══════════════════
+    if (!player.isGrounded) player.vel.y += player.gravity * dt;
+    player.pos.addScaledVector(player.vel, dt);
+    if (player.pos.y <= GROUND_Y) {
+      player.pos.y    = GROUND_Y;
+      player.vel.y    = 0;
+      player.isGrounded = true;
+    }
+
+    // ══ 5. DOG ROTATION ══════════════════════════
+    if (moving && moveDir.lengthSq() > 0.001) {
+      const target = Math.atan2(moveDir.x, moveDir.z);
+      let diff = target - dogYaw;
+      while (diff >  Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      dogYaw += diff * Math.min(1.0, 10 * dt);
+    }
+  } else {
+    // On autopilot — keep grounded state correct
+    player.isGrounded = (player.pos.y <= GROUND_Y + 0.05);
+    player.vel.set(0, 0, 0);
+    prevJump = false;
+  }
+
+  dogGroup.position.copy(player.pos);
+  // +Math.PI because the model is built facing -Z; offset keeps movement direction correct
+  dogGroup.rotation.y = dogYaw + Math.PI;
+
+  // ══ 6. CAMERA FOLLOW ═════════════════════════
+  let desired;
+  if (autopilot) {
+    // During autopilot: camera stays behind the dog along the travel direction,
+    // but updates very slowly so it doesn't shake during weave left/right snaking.
+    const wp = autopilot.waypoints;
+    const last = wp[wp.length - 1];
+    const first = wp[0];
+    // Direction of the overall path (entry → exit), normalised
+    const pdx = last.x - first.x;
+    const pdz = last.z - first.z;
+    const plen = Math.sqrt(pdx*pdx + pdz*pdz) || 1;
+    // Camera sits behind the dog along that direction
+    desired = new THREE.Vector3(
+      player.pos.x - (pdx / plen) * CAM_DIST,
+      player.pos.y + CAM_HEIGHT + 1.0,
+      player.pos.z - (pdz / plen) * CAM_DIST
+    );
+    smoothCam.lerp(desired, 0.02); // very slow — stable during weave
+  } else {
+    const sinY = Math.sin(dogYaw);
+    const cosY = Math.cos(dogYaw);
+    desired = new THREE.Vector3(
+      player.pos.x - sinY * CAM_DIST,
+      player.pos.y + CAM_HEIGHT,
+      player.pos.z - cosY * CAM_DIST
+    );
+    smoothCam.lerp(desired, 0.05);
+  }
+  camera.position.copy(smoothCam);
+  camera.lookAt(player.pos.x, player.pos.y + 1.1, player.pos.z);
+
+  // ══ COURSE CHECK ══════════════════════════════
+  const nowMs = performance.now();
+  if (!isPaused && !gameInputLocked) {
+    tickTimer(nowMs);
+    checkCourse(player.pos, nowMs);
+  }
+  updateDiscs();
+  updateBeacon(dt);
+  updatePathLines();
+  tickCrowdWaves(nowMs);
+  updateSeesawTilt();
+
+  // ══ 7. ANIMATION ══════════════════════════════
+  const isAir = !player.isGrounded;
+  if (moving || isAir) legTime += dt * 8.5;
+  wagTime += dt;
+
+  // Diagonal trot gait — legs[0] FL, [1] FR, [2] RL, [3] RR
+  // Diagonal pairs (FL+RR) and (FR+RL) move in opposite phase
+  const swing = isAir ? 0.25 : (moving ? 0.52 : 0);
+  legs[0].rotation.x =  Math.sin(legTime)             * swing;  // FL
+  legs[1].rotation.x =  Math.sin(legTime + Math.PI)   * swing;  // FR  (opposite)
+  legs[2].rotation.x =  Math.sin(legTime + Math.PI)   * swing;  // RL  (diagonal with FL)
+  legs[3].rotation.x =  Math.sin(legTime)             * swing;  // RR  (diagonal with FR)
+
+  // Tail wag via tailGroup pivot — enthusiastic when running
+  const wagSpeed = moving ? 5.5 : 3.0;
+  const wagAmp   = moving ? 0.60 : 0.30;
+  tailGroup.rotation.z = Math.sin(wagTime * wagSpeed) * wagAmp;
+
+  // Body & head bob while running
+  // body is a direct child of dogGroup at y=0.85; nudge it slightly
+  body.position.y = 0.85 + (moving ? Math.abs(Math.sin(legTime)) * 0.022 : 0);
+  // headGroup is parented to body; bob it gently
+  headGroup.rotation.x = moving ? Math.sin(legTime * 0.5) * 0.06 : 0;
+
+  renderer.render(scene, camera);
+}
+
+// ── Resize ────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ═══════════════════════════════════════════════
+//  COURSE GUIDANCE  –  Beacon arrow + ground path
+// ═══════════════════════════════════════════════
+
+// ── Floating beacon arrow above next obstacle ──
+// Built from a cone (arrowhead) + cylinder (shaft), pulsing up/down
+// ═══════════════════════════════════════════════
+//  DIRECTION ARROW  –  Large ground arrow + tall pole
+// ═══════════════════════════════════════════════
+
+const arrowGroup = new THREE.Group();
+
+// -- Tall vertical pole --
+const arrowPoleMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
+const arrowPole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 4.5, 8), arrowPoleMat);
+arrowPole.position.y = 2.25;
+arrowGroup.add(arrowPole);
+
+// -- Diamond on top --
+const diamondMat = new THREE.MeshLambertMaterial({ color: 0xffeb3b, emissive: 0xffcc00, emissiveIntensity: 1.0 });
+const diamondTop = new THREE.Mesh(new THREE.OctahedronGeometry(0.55), diamondMat);
+diamondTop.position.y = 5.0;
+arrowGroup.add(diamondTop);
+
+// -- Ground arrow (flat, pointing forward along +Z in local space) --
+const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b, side: THREE.DoubleSide });
+
+// Arrow shaft
+const arrowShaft = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 1.4), arrowMat);
+arrowShaft.rotation.x = -Math.PI / 2;
+arrowShaft.position.set(0, 0.04, 1.1);
+arrowGroup.add(arrowShaft);
+
+// Arrow head: ConeGeometry tip points +Y by default.
+// rotation.x = +PI/2 lays it flat with tip pointing +Z (forward).
+const arrowHeadMat = new THREE.MeshBasicMaterial({ color: 0xff6f00, side: THREE.DoubleSide });
+const arrowHead = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.2, 3), arrowHeadMat);
+arrowHead.rotation.x = Math.PI / 2;   // tip → +Z
+arrowHead.position.set(0, 0.04, 2.2);
+arrowGroup.add(arrowHead);
+
+// -- Pulsing ring on the ground --
+const ringMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+const arrowRing = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.15, 32), ringMat);
+arrowRing.rotation.x = -Math.PI / 2;
+arrowRing.position.y = 0.03;
+arrowGroup.add(arrowRing);
+
+scene.add(arrowGroup);
+let beaconTime = 0;
+let beaconObstacleIndex = -1;
+
+function getObsEntry(obs) {
+  if (obs.type === 'jump')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'tunnel')  return new THREE.Vector3(obs.entryPos.x, 0, obs.entryPos.z);
+  if (obs.type === 'weave')   return new THREE.Vector3(obs.cx, 0, obs.poleZs[0]);
+  if (obs.type === 'contact') return new THREE.Vector3(obs.cx, 0, obs.entryContactZ);
+  if (obs.type === 'tire')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'pause')   return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'seesaw')  return new THREE.Vector3(obs.cx, 0, obs.entryContactZ);
+  return new THREE.Vector3(0, 0, 0);
+}
+
+function getObsExit(obs) {
+  if (obs.type === 'jump')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'tunnel')  return new THREE.Vector3(obs.exitPos.x, 0, obs.exitPos.z);
+  if (obs.type === 'weave')   return new THREE.Vector3(obs.cx, 0, obs.poleZs[obs.NUM_POLES - 1]);
+  if (obs.type === 'contact') return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
+  if (obs.type === 'tire')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + 2);
+  if (obs.type === 'pause')   return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'seesaw')  return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
+  return new THREE.Vector3(0, 0, 0);
+}
+
+function updateBeacon(dt) {
+  if (courseComplete) { arrowGroup.visible = false; return; }
+  const obs = courseObstacles[currentObstacle];
+  if (!obs) { arrowGroup.visible = false; return; }
+
+  beaconTime += dt;
+
+  const entry = getObsEntry(obs);
+  const dogPos = player.pos;
+
+  // Direction from dog to obstacle
+  const dx = entry.x - dogPos.x;
+  const dz = entry.z - dogPos.z;
+  const dist = Math.sqrt(dx*dx + dz*dz);
+
+  // Hide when very close (at obstacle) or during autopilot
+  arrowGroup.visible = dist > 2.5 && !autopilot;
+
+  if (!arrowGroup.visible) return;
+
+  // Place arrow 2 units ahead of dog along the direction to the obstacle
+  const nx = dist > 0.01 ? dx/dist : 0;
+  const nz = dist > 0.01 ? dz/dist : 1;
+  arrowGroup.position.set(dogPos.x + nx * 2.5, 0, dogPos.z + nz * 2.5);
+
+  // Rotate so +Z of group faces toward obstacle (= direction of travel)
+  arrowGroup.rotation.y = Math.atan2(dx, dz);
+
+  // Bob the diamond
+  diamondTop.position.y = 5.0 + Math.sin(beaconTime * 3.5) * 0.35;
+  diamondTop.rotation.y = beaconTime * 2.5;
+
+  // Pulse the ring
+  const rs = 0.9 + Math.sin(beaconTime * 4.0) * 0.15;
+  arrowRing.scale.set(rs, rs, rs);
+  ringMat.opacity = 0.45 + Math.sin(beaconTime * 4.0) * 0.2;
+
+  // Gentle bounce on the whole group
+  const s = 0.85 + Math.sin(beaconTime * 2.5) * 0.15;
+  arrowGroup.scale.set(s, 1.0, s);
+}
+
+// ── Ground path lines connecting obstacles ─────
+// Drawn as flat boxes on the ground between each pair of obstacles
+let pathLines = [];
+
+function getObsGroundPos(obs) {
+  if (obs.type === 'jump')    return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
+  if (obs.type === 'tunnel')  return new THREE.Vector3(obs.entryPos.x, 0.02, obs.entryPos.z);
+  if (obs.type === 'weave')   return new THREE.Vector3(obs.cx, 0.02, obs.poleZs[0]);
+  if (obs.type === 'contact') return new THREE.Vector3(obs.cx, 0.02, obs.entryContactZ);
+  if (obs.type === 'tire')    return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
+  if (obs.type === 'pause')   return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
+  if (obs.type === 'seesaw')  return new THREE.Vector3(obs.cx, 0.02, obs.entryContactZ);
+  return new THREE.Vector3(0, 0.02, 0);
+}
+
+function buildPathLines() {
+  // Remove old
+  pathLines.forEach(m => scene.remove(m));
+  pathLines = [];
+
+  for (let i = 0; i < courseObstacles.length - 1; i++) {
+    const a = getObsGroundPos(courseObstacles[i]);
+    const b = getObsGroundPos(courseObstacles[i + 1]);
+
+    const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+    const len = a.distanceTo(b);
+    const angle = Math.atan2(b.x - a.x, b.z - a.z);
+
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.18,
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.3, len), mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.rotation.z = angle;
+    mesh.position.copy(mid);
+    mesh.position.y = 0.02;
+    scene.add(mesh);
+    sceneObstacleObjects.push(mesh);
+    pathLines.push(mesh);
+  }
+}
+
+function updatePathLines() {
+  pathLines.forEach((mesh, i) => {
+    const isDone = i < currentObstacle;
+    const isNext = i === currentObstacle;
+    const mat = mesh.material;
+    mat.color.setHex(isDone ? 0x4caf50 : isNext ? 0xffeb3b : 0xffffff);
+    mat.opacity = isDone ? 0.10 : isNext ? 0.35 : 0.13;
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  COUNTDOWN SYSTEM
+// ═══════════════════════════════════════════════
+const countdownOverlay = document.getElementById('countdown-overlay');
+const countdownNumber  = document.getElementById('countdown-number');
+let countdownActive    = false;
+let gameInputLocked    = false; // blocks movement during countdown
+
+function startCountdown(onDone) {
+  countdownActive  = true;
+  gameInputLocked  = true;
+  countdownOverlay.classList.add('visible');
+
+  let count = 3;
+  countdownNumber.className = '';
+  countdownNumber.textContent = String(count);
+
+  const tick = () => {
+    count--;
+    if (count > 0) {
+      // Re-trigger animation by cloning the element
+      countdownNumber.className = '';
+      countdownNumber.textContent = String(count);
+      void countdownNumber.offsetWidth; // reflow to restart animation
+      countdownNumber.className = '';
+      setTimeout(tick, 900);
+    } else {
+      countdownNumber.className = 'go';
+      countdownNumber.textContent = 'קדימה!';
+      void countdownNumber.offsetWidth;
+      setTimeout(() => {
+        countdownOverlay.classList.remove('visible');
+        countdownActive  = false;
+        gameInputLocked  = false;
+        onDone();
+      }, 700);
+    }
+  };
+  setTimeout(tick, 900);
+}
+
+// ═══════════════════════════════════════════════
+//  PAUSE SYSTEM
+// ═══════════════════════════════════════════════
+const pauseOverlay = document.getElementById('pause-overlay');
+let isPaused = false;
+
+function setPaused(val) {
+  isPaused = val;
+  const btn = document.getElementById('pause-btn');
+  if (val) {
+    pauseOverlay.classList.add('visible');
+    btn.textContent = '▶ המשך';
+    if (timerRunning) timerFinal = performance.now() - timerStart;
+  } else {
+    pauseOverlay.classList.remove('visible');
+    btn.textContent = '⏸ השהיה';
+    if (timerRunning) timerStart = performance.now() - timerFinal;
+  }
+}
+
+document.getElementById('pause-resume-btn').onclick  = () => setPaused(false);
+document.getElementById('pause-restart-btn').onclick = () => { setPaused(false); startLevel(currentLevel); };
+document.getElementById('pause-lvl1-btn').onclick    = () => { setPaused(false); startLevel(0); };
+document.getElementById('pause-btn').onclick         = () => {
+  if (levelOverlay.classList.contains('visible')) return;
+  if (countdownActive) return;
+  setPaused(!isPaused);
+};
+
+// ESC key toggles pause
+document.addEventListener('keydown', e => {
+  if (e.code === 'Escape') {
+    // Don't pause if level overlay or countdown is showing
+    if (levelOverlay.classList.contains('visible')) return;
+    if (countdownActive) return;
+    setPaused(!isPaused);
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  PERSONAL BEST  –  localStorage per level
+// ═══════════════════════════════════════════════
+const pbDisplay    = document.getElementById('pb-display');
+const pbValueEl    = document.getElementById('pb-value');
+const newBestFlash = document.getElementById('newbest-flash');
+let   newBestTimer = null;
+
+function getPB(levelIndex) {
+  try {
+    const v = localStorage.getItem(`agility_pb_lvl${levelIndex}`);
+    return v ? parseFloat(v) : null;
+  } catch(e) { return null; }
+}
+
+function setPB(levelIndex, ms) {
+  try { localStorage.setItem(`agility_pb_lvl${levelIndex}`, String(ms)); } catch(e) {}
+}
+
+function showPB(levelIndex) {
+  const pb = getPB(levelIndex);
+  if (pb !== null) {
+    pbValueEl.textContent = formatTime(pb);
+    pbDisplay.classList.add('visible');
+  } else {
+    pbDisplay.classList.remove('visible');
+  }
+}
+
+function checkAndSavePB(levelIndex, ms) {
+  const existing = getPB(levelIndex);
+  if (existing === null || ms < existing) {
+    setPB(levelIndex, ms);
+    pbValueEl.textContent = formatTime(ms);
+    // Flash new best
+    newBestFlash.classList.add('show');
+    clearTimeout(newBestTimer);
+    newBestTimer = setTimeout(() => newBestFlash.classList.remove('show'), 2200);
+    return true;
+  }
+  return false;
+}
+
+// ── Level system ──────────────────────────────
+const levelOverlay   = document.getElementById('level-overlay');
+const levelCard      = document.getElementById('level-card');
+const levelBadge     = document.getElementById('level-badge');
+const levelTitle     = document.getElementById('level-title');
+const levelSubtitle  = document.getElementById('level-subtitle');
+const levelObsEl     = document.getElementById('level-obstacles');
+const levelFinalTime = document.getElementById('level-final-time');
+const levelTimeLabel = document.getElementById('level-time-label');
+const levelStars     = document.getElementById('level-stars');
+const levelBtnRow    = document.getElementById('level-btn-row');
+const levelIndValue  = document.getElementById('level-indicator-value');
+
+function obsTypeLabel(type) {
+  return { jump: '🏃 קפיצה', tunnel: '🌀 מנהרה', weave: '〰️ סללום',
+           aframe: '🔺 A-Frame', dogwalk: '🌉 הליכון',
+           tire: '⭕ צמיג', pause: '⏸ שולחן עמידה', seesaw: '⚖️ נדנדה' }[type] || type;
+}
+
+function getStars(ms, levelIndex) {
+  const def = LEVEL_DEFS[levelIndex];
+  if (!def) return '⭐';
+  if (ms <= def.gold)   return '⭐⭐⭐';
+  if (ms <= def.silver) return '⭐⭐';
+  return '⭐';
+}
+
+function getSavedStars(levelIndex) {
+  try { return parseInt(localStorage.getItem(`stars_${levelIndex}`)) || 0; } catch { return 0; }
+}
+function saveStars(levelIndex, starCount) {
+  try { localStorage.setItem(`stars_${levelIndex}`, String(starCount)); } catch {}
+}
+
+function showLevelStart(levelIndex) {
+  const def = LEVEL_DEFS[levelIndex];
+  const isChamp = levelIndex === LEVEL_DEFS.length - 1;
+
+  levelCard.className = isChamp ? 'championship' : '';
+  levelBadge.textContent  = `שלב ${levelIndex + 1}`;
+  levelTitle.textContent  = def.name;
+  levelSubtitle.textContent = def.subtitle;
+
+  // Obstacle tags
+  levelObsEl.innerHTML = '';
+  def.obstacles.forEach(o => {
+    const tag = document.createElement('div');
+    tag.className = 'level-obs-tag';
+    tag.textContent = obsTypeLabel(o.type);
+    levelObsEl.appendChild(tag);
+  });
+
+  // Hide completion elements
+  levelFinalTime.style.display = 'none';
+  levelTimeLabel.style.display = 'none';
+  levelStars.style.display     = 'none';
+
+  // Buttons
+  levelBtnRow.innerHTML = '';
+  const startBtn = document.createElement('button');
+  startBtn.className   = 'level-btn btn-primary';
+  startBtn.textContent = levelIndex === 0 ? '🐾 התחל משחק' : '🐾 קדימה!';
+  startBtn.onclick = () => {
+    hideLevelOverlay();
+    resetCourseState();
+    startCountdown(() => {
+      startTimer(performance.now());
+      timerStarted = true;
+    });
+  };
+  levelBtnRow.appendChild(startBtn);
+
+  if (levelIndex > 0) {
+    const restartBtn = document.createElement('button');
+    restartBtn.className   = 'level-btn btn-ghost-sm';
+    restartBtn.textContent = '↩ שלב 1';
+    restartBtn.onclick = () => { startLevel(0); };
+    levelBtnRow.appendChild(restartBtn);
+  }
+
+  showLevelOverlay(false);
+}
+
+function showLevelComplete(formattedTime) {
+  const def      = LEVEL_DEFS[currentLevel];
+  const isLast   = currentLevel === LEVEL_DEFS.length - 1;
+  const isChamp  = isLast;
+
+  levelCard.className = isChamp ? 'completion championship' : 'completion';
+  levelBadge.textContent  = isLast ? '🏆 אליפות' : `שלב ${currentLevel + 1} הושלם!`;
+  levelTitle.textContent  = isLast ? 'אלוף!' : def.name;
+  levelSubtitle.textContent = isLast ? 'כבשת את המסלול המלא!' : 'המסלול הושלם!';
+
+  // Obstacle tags
+  levelObsEl.innerHTML = '';
+  def.obstacles.forEach(o => {
+    const tag = document.createElement('div');
+    tag.className = 'level-obs-tag';
+    tag.textContent = obsTypeLabel(o.type);
+    levelObsEl.appendChild(tag);
+  });
+
+  // Time + stars
+  levelFinalTime.textContent  = formattedTime;
+  levelFinalTime.style.display = 'block';
+  levelTimeLabel.style.display = 'block';
+  const stars = getStars(timerFinal, currentLevel);
+  levelStars.textContent  = stars;
+  levelStars.style.display = 'block';
+  const numStars = (stars.match(/⭐/g) || []).length;
+  if (numStars > getSavedStars(currentLevel)) saveStars(currentLevel, numStars);
+
+  // Personal best check
+  checkAndSavePB(currentLevel, timerFinal);
+
+  // Buttons
+  levelBtnRow.innerHTML = '';
+  if (!isLast) {
+    const nextBtn = document.createElement('button');
+    nextBtn.className   = 'level-btn btn-gold';
+    nextBtn.textContent = `הבא: שלב ${currentLevel + 2} ←`;
+    nextBtn.onclick = () => { startLevel(currentLevel + 1); };
+    levelBtnRow.appendChild(nextBtn);
+  } else {
+    const replayBtn = document.createElement('button');
+    replayBtn.className   = 'level-btn btn-gold';
+    replayBtn.textContent = '🏆 שחק שוב';
+    replayBtn.onclick = () => { startLevel(0); };
+    levelBtnRow.appendChild(replayBtn);
+  }
+
+  const restartBtn = document.createElement('button');
+  restartBtn.className   = 'level-btn btn-ghost-sm';
+  restartBtn.textContent = `↩ נסה שוב שלב ${currentLevel + 1}`;
+  restartBtn.onclick = () => { startLevel(currentLevel); };
+  levelBtnRow.appendChild(restartBtn);
+
+  showLevelOverlay(true);
+}
+
+function showLevelOverlay(isCompletion) {
+  levelOverlay.classList.add('visible');
+  // Prevent game from reacting to keys while overlay is up
+  // (keys object resets itself via the flag)
+}
+
+function hideLevelOverlay() {
+  levelOverlay.classList.remove('visible');
+}
+
+function resetPlayerToSpawn() {
+  const firstObs = courseObstacles[0];
+  let spawnX = 0, spawnZ = 3, spawnYaw = 0;
+
+  if (firstObs) {
+    let obsX, obsZ;
+    if      (firstObs.type === 'jump')    { obsX = firstObs.pos.x;      obsZ = firstObs.pos.z; }
+    else if (firstObs.type === 'tunnel')  { obsX = firstObs.entryPos.x; obsZ = firstObs.entryPos.z; }
+    else if (firstObs.type === 'weave')   { obsX = firstObs.cx;         obsZ = firstObs.poleZs[0]; }
+    else                                  { obsX = firstObs.cx;         obsZ = firstObs.entryContactZ; }
+
+    spawnX = obsX;
+    spawnZ = obsZ - 10;  // spawn behind first obstacle (lower Z) where tree was
+
+    // Course runs in +Z direction, so dog faces +Z → dogYaw = 0
+    const dx = obsX - spawnX;
+    const dz = obsZ - spawnZ; // positive — obstacle is ahead in +Z
+    spawnYaw = Math.atan2(dx, dz); // atan2(0, positive) = 0
+  }
+
+  player.pos.set(spawnX, 0, spawnZ);
+  player.vel.set(0, 0, 0);
+  player.isGrounded = true;
+  dogYaw = spawnYaw;
+
+  // Apply immediately — no lerp
+  dogGroup.position.copy(player.pos);
+  dogGroup.rotation.y = dogYaw + Math.PI;
+
+  // Snap camera directly behind dog
+  const sinY = Math.sin(dogYaw);
+  const cosY = Math.cos(dogYaw);
+  smoothCam.set(
+    spawnX - sinY * CAM_DIST,
+    CAM_HEIGHT,
+    spawnZ - cosY * CAM_DIST
+  );
+  camera.position.copy(smoothCam);
+  camera.lookAt(spawnX, 1.1, spawnZ + 5);
+
+  prevPlayerZ = spawnZ;
+}
+
+function resetCourseState() {
+  currentObstacle  = 0;
+  courseComplete   = false;
+  timerRunning     = false;
+  timerStarted     = false;
+  timerStart       = 0;
+  timerFinal       = 0;
+  startLineCrossed = false;
+  startLineCooldown = 0;
+  timerValueEl.textContent = '00.00';
+  timerValueEl.className   = 'idle';
+  obsLastTrigger = new Array(courseObstacles.length).fill(0);
+
+  // Reset obstacle states
+  courseObstacles.forEach(o => {
+    o.cleared = false;
+    if (o.type === 'jump')    { o.crossState = 'before'; if (o.barGroup) o.barGroup.position.y = 1.1; }
+    if (o.type === 'tunnel')  { o.state = 'idle'; o.lastEntry = 0; o.lastExit = 0; }
+    if (o.type === 'weave')   { o.active = false; o.nextPole = 0; }
+    if (o.type === 'contact') { o.state = 'idle'; o.penaltyApplied = false; }
+    if (o.type === 'tire')    { o.state = 'idle'; }
+    if (o.type === 'pause')   { o.state = 'idle'; o.waitStart = 0; }
+    if (o.type === 'seesaw')  { o.state = 'idle'; if (o.plank) o.plank.rotation.x = -0.18; }
+    setObsColour(o, o.index === 0 ? COL_NEXT : COL_DEFAULT);
+    refreshDiscTexture(o);
+  });
+
+  buildPips(courseObstacles.length);
+  buildPathLines();
+  showPB(currentLevel);
+  beaconObstacleIndex = -1;
+  beaconTime = 0;
+  stopAutopilot();
+  showMsg(`הבא: ${obsLabel(0)}`, '', 0);
+  msgEl.className = '';
+}
+
+function startLevel(levelIndex) {
+  currentLevel = levelIndex;
+  levelIndValue.textContent = String(levelIndex + 1);
+  hideLevelOverlay();
+  buildLevel(levelIndex);
+  resetPlayerToSpawn();
+  resetCourseState();
+  showLevelStart(levelIndex);
+}
+
+// ── Boot: show level 1 start screen ───────────
+buildLevel(0);
+buildPips(courseObstacles.length);
+obsLastTrigger = new Array(courseObstacles.length).fill(0);
+resetPlayerToSpawn();
+showLevelStart(0);
+
+animate();
+</script>
+</body>
+</html>
