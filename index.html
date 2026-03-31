@@ -356,67 +356,68 @@
     #finish-screen {
       display: none; position: fixed; inset: 0; z-index: 250;
       background: linear-gradient(160deg,rgba(3,6,14,0.97),rgba(7,14,30,0.97));
-      flex-direction: column; align-items: center; justify-content: center;
-      direction: rtl; overflow-y: auto; padding: 20px 0;
+      flex-direction: column; align-items: center;
+      direction: rtl; overflow-y: auto; padding: 16px 0 30px;
+      -webkit-overflow-scrolling: touch;
     }
     #finish-screen.visible { display: flex; }
     #finish-screen::before {
-      content:''; position:absolute; inset:0; pointer-events:none;
-      background: radial-gradient(ellipse 70% 45% at 50% 0%, rgba(212,160,23,0.12) 0%, transparent 60%),
-                  radial-gradient(ellipse 40% 30% at 20% 100%, rgba(26,106,191,0.07) 0%, transparent 55%);
+      content:''; position:fixed; inset:0; pointer-events:none;
+      background: radial-gradient(ellipse 70% 45% at 50% 0%, rgba(212,160,23,0.12) 0%, transparent 60%);
     }
     #finish-card {
       background: linear-gradient(160deg,rgba(8,14,28,0.95),rgba(4,8,18,0.95));
       border: 1px solid rgba(212,160,23,0.5); border-radius: 3px;
-      padding: 36px 48px; text-align: center; max-width: 500px; width: 92vw;
-      box-shadow: 0 16px 80px rgba(0,0,0,0.7), 0 0 60px rgba(212,160,23,0.08);
-      position: relative; overflow: hidden; z-index: 1;
+      padding: 28px 20px 24px; text-align: center; max-width: 460px; width: 94vw;
+      box-shadow: 0 16px 80px rgba(0,0,0,0.7);
+      position: relative; z-index: 1; margin-bottom: 12px;
+      flex-shrink: 0;
     }
     #finish-card::before {
       content:''; position:absolute; top:0; right:0; left:0; height:2px;
       background: linear-gradient(90deg,transparent,var(--gold),transparent);
     }
-    #finish-trophy { font-size: 3.5rem; margin-bottom: 6px; animation: trophyPop 0.6s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+    #finish-trophy { font-size: 2.8rem; margin-bottom: 4px; animation: trophyPop 0.6s cubic-bezier(0.175,0.885,0.32,1.275) both; }
     @keyframes trophyPop { from { transform: scale(0.3) rotate(-20deg); opacity:0; } to { transform: scale(1) rotate(0); opacity:1; } }
     #finish-badge {
       font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:4px;
-      text-transform:uppercase; color:rgba(212,160,23,0.7); margin-bottom:6px;
+      text-transform:uppercase; color:rgba(212,160,23,0.7); margin-bottom:4px;
     }
     #finish-title {
-      font-family:'Oswald',sans-serif; font-size:2.6rem; font-weight:700;
+      font-family:'Oswald',sans-serif; font-size:2.2rem; font-weight:700;
       color: var(--gold); letter-spacing:0.06em; margin-bottom:2px;
       text-shadow: 0 0 40px rgba(212,160,23,0.5);
     }
     #finish-subtitle {
-      font-family:'Rubik',sans-serif; font-size:0.88rem;
-      color:rgba(255,255,255,0.45); margin-bottom:20px;
+      font-family:'Rubik',sans-serif; font-size:0.82rem;
+      color:rgba(255,255,255,0.45); margin-bottom:14px;
     }
     #finish-time-big {
-      font-family:'Oswald',sans-serif; font-size:3.6rem; font-weight:700;
+      font-family:'Oswald',sans-serif; font-size:3.2rem; font-weight:700;
       color:#fff; letter-spacing:0.04em; line-height:1;
-      text-shadow: 0 2px 20px rgba(212,160,23,0.6); margin-bottom:4px;
+      text-shadow: 0 2px 20px rgba(212,160,23,0.6); margin-bottom:2px;
     }
     #finish-time-label {
       font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:4px;
-      text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:6px;
+      text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:4px;
     }
-    #finish-stars { font-size:1.8rem; letter-spacing:0.1em; margin-bottom:6px; }
+    #finish-stars { font-size:1.5rem; letter-spacing:0.1em; margin-bottom:4px; }
     #finish-newbest {
       font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:3px;
-      color: var(--gold); text-transform:uppercase; margin-bottom:18px;
+      color: var(--gold); text-transform:uppercase; margin-bottom:12px;
       opacity:0; transition: opacity 0.4s;
     }
     #finish-newbest.show { opacity:1; }
     .finish-divider {
-      width:100%; height:1px; margin:18px 0;
+      width:100%; height:1px; margin:12px 0;
       background:linear-gradient(90deg,transparent,rgba(212,160,23,0.25),transparent);
     }
     #finish-name-row {
-      display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:16px;
+      display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:12px;
     }
     #finish-name-input {
-      font-family:'Oswald',sans-serif; font-size:16px; letter-spacing:2px;
-      padding:10px 16px; border-radius:2px; width:180px;
+      font-family:'Oswald',sans-serif; font-size:15px; letter-spacing:2px;
+      padding:10px 14px; border-radius:2px; flex:1; min-width:0;
       background:rgba(255,255,255,0.06); color:white;
       border:1px solid rgba(212,160,23,0.3); outline:none; text-align:right;
       transition: border-color 0.2s;
@@ -424,35 +425,59 @@
     #finish-name-input:focus { border-color:var(--gold); }
     #finish-save-btn {
       font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:2px;
-      padding:10px 18px; border-radius:2px; cursor:pointer; text-transform:uppercase;
+      padding:10px 16px; border-radius:2px; cursor:pointer; text-transform:uppercase;
       background:linear-gradient(135deg,#1a5a2a,#0d3a1a);
       color:var(--gold); border:1px solid rgba(212,160,23,0.42);
-      transition: all 0.2s; white-space:nowrap;
+      transition: all 0.2s; white-space:nowrap; flex-shrink:0;
     }
     #finish-save-btn:hover { box-shadow:0 0 16px rgba(212,160,23,0.3); }
     #finish-save-btn:disabled { opacity:0.4; cursor:default; }
     #finish-leaderboard {
-      width:100%; max-width:360px; margin:0 auto 18px;
-      background:rgba(0,0,0,0.35); border:1px solid rgba(212,160,23,0.15);
-      border-radius:2px; overflow:hidden;
+      width:100%; background:rgba(0,0,0,0.35);
+      border:1px solid rgba(212,160,23,0.15); border-radius:2px; overflow:hidden;
     }
     #finish-leaderboard h3 {
-      font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:3px;
-      color:var(--gold); text-align:center; padding:10px 0 8px;
+      font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:3px;
+      color:var(--gold); text-align:center; padding:8px 0 6px;
       text-transform:uppercase; border-bottom:1px solid rgba(212,160,23,0.12);
     }
     .lb-row {
       display:flex; justify-content:space-between; align-items:center;
-      padding:8px 16px; border-bottom:1px solid rgba(255,255,255,0.04);
+      padding:7px 14px; border-bottom:1px solid rgba(255,255,255,0.04);
       font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:1px;
     }
     .lb-row:last-child { border-bottom:none; }
-    .lb-rank { color:rgba(212,160,23,0.7); width:24px; }
+    .lb-rank { color:rgba(212,160,23,0.7); width:22px; flex-shrink:0; }
     .lb-name { color:#fff; flex:1; text-align:right; padding:0 8px; }
-    .lb-time { color:rgba(255,255,255,0.55); font-size:12px; }
+    .lb-time { color:rgba(255,255,255,0.55); font-size:12px; flex-shrink:0; }
     .lb-row.highlight { background:rgba(212,160,23,0.08); }
     .lb-row.highlight .lb-name { color:var(--gold); }
-    #finish-btn-row { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+
+    /* Navigation buttons — fixed at bottom, always visible */
+    #finish-nav {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      max-width: 460px; width: 94vw; flex-shrink: 0;
+      padding: 8px 0 4px;
+    }
+    #btn-next-run {
+      font-family:'Oswald',sans-serif; font-size:18px; font-weight:700;
+      letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+      background: linear-gradient(135deg,#1a5a2a,#0d3a1a);
+      color: var(--gold); border: 1px solid rgba(212,160,23,0.5);
+      padding: 18px 28px; border-radius: 3px; flex: 2; min-width: 160px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 20px rgba(212,160,23,0.15);
+      transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+    }
+    #btn-next-run:active { transform: scale(0.96); }
+    #btn-retry-run, #btn-main-menu {
+      font-family:'Oswald',sans-serif; font-size:15px; font-weight:700;
+      letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.18);
+      padding: 16px 18px; border-radius: 3px; flex: 1; min-width: 100px;
+      transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+    }
+    #btn-retry-run:active, #btn-main-menu:active { transform: scale(0.96); background: rgba(255,255,255,0.12); }
 
     /* Confetti canvas */
     #confetti-canvas {
@@ -460,7 +485,6 @@
       display:none;
     }
     #confetti-canvas.visible { display:block; }
-
     /* ── PAUSE OVERLAY ── */
     #pause-overlay {
       display: none; position: fixed; inset: 0;
@@ -587,7 +611,7 @@
 <!-- HUD top bar -->
 <div id="hud">
   <div class="hud-panel">
-    <div class="hud-label">שלב</div>
+    <div class="hud-label">ריצה</div>
     <div class="hud-value gold-text" id="level-indicator-value">1</div>
   </div>
 </div>
@@ -654,11 +678,11 @@
 <!-- Finish screen -->
 <div id="finish-screen">
   <div id="finish-card">
-    <div id="finish-trophy">🏆</div>
+    <div id="finish-trophy">✅</div>
     <div id="finish-badge">CoolDog · אג׳יליטי</div>
     <div id="finish-title">שלם!</div>
     <div id="finish-subtitle">המסלול הושלם בהצלחה</div>
-    <div class="gold-line" style="margin:0 auto 16px;"></div>
+    <div class="gold-line" style="margin:0 auto 12px;"></div>
     <div id="finish-time-big">00.00</div>
     <div id="finish-time-label">זמן סיום</div>
     <div id="finish-stars">⭐</div>
@@ -669,10 +693,22 @@
       <button id="finish-save-btn" onclick="finishSaveScore()">שמור</button>
     </div>
     <div id="finish-leaderboard">
-      <h3>🏅 לוח שיאים — שלב <span id="lb-level-num">1</span></h3>
-      <div id="lb-rows"><div style="padding:12px;color:rgba(255,255,255,0.3);font-family:'Oswald';font-size:12px;text-align:center;">טוען...</div></div>
+      <h3>🏅 לוח שיאים</h3>
+      <div id="lb-rows"><div style="padding:10px;color:rgba(255,255,255,0.3);font-family:'Oswald';font-size:12px;text-align:center;">טוען...</div></div>
     </div>
-    <div id="finish-btn-row"></div>
+  </div>
+
+  <!-- Navigation buttons — always visible, outside card -->
+  <div id="finish-nav">
+    <button id="btn-next-run" onclick="hideFinishScreen(); startLevel(0);">
+      <span style="font-size:1.3em">←</span> ריצה הבאה
+    </button>
+    <button id="btn-retry-run" onclick="hideFinishScreen(); currentRunNumber--; startLevel(0);">
+      ↺ נסה שוב
+    </button>
+    <button id="btn-main-menu" onclick="hideFinishScreen(); returnToCharSelect();">
+      🏠 תפריט
+    </button>
   </div>
 </div>
 
@@ -693,10 +729,10 @@
     <h2>⏸ השהיה</h2>
     <div class="pause-sub">ESC לחזרה למשחק</div>
     <div id="pause-btn-col">
-      <button class="level-btn btn-primary" id="pause-resume-btn">▶ המשך</button>
-      <button class="level-btn btn-ghost-sm" id="pause-restart-btn">↺ אתחל שלב</button>
-      <button class="level-btn btn-ghost-sm" id="pause-lvl1-btn">⏮ שלב 1</button>
-      <button class="level-btn btn-ghost-sm" id="pause-charselect-btn">🐕 בחר כלב</button>
+      <button class="level-btn btn-primary" id="pause-resume-btn">▶ המשך ריצה</button>
+      <button class="level-btn btn-ghost-sm" id="pause-restart-btn">↺ התחל מסלול מחדש</button>
+      <button class="level-btn btn-ghost-sm" id="pause-lvl1-btn">⏭ מסלול חדש</button>
+      <button class="level-btn btn-ghost-sm" id="pause-charselect-btn">🏠 תפריט ראשי</button>
     </div>
   </div>
 </div>
@@ -1569,65 +1605,275 @@ function makeSeesaw(cx, cz, index, col = []) {
 
 //  Obstacle comment block
 // ── Level definitions ─────────────────────────
-const LEVEL_DEFS = [
-  {
-    name: 'חימום', subtitle: 'שלושה קפיצות – צאו לדרך!',
-    gold: 14000, silver: 22000,
-    obstacles: [
-      { type: 'jump', x:  0, z:  0 },
-      { type: 'jump', x:  4, z: 14 },
-      { type: 'jump', x: -3, z: 28 },
-    ],
-  },
-  {
-    name: 'מנהרת האמן', subtitle: 'קפיצות ומנהרה מחכות לכם!',
-    gold: 20000, silver: 32000,
-    obstacles: [
-      { type: 'jump',   x:  0, z:  0 },
-      { type: 'jump',   x:  4, z: 14 },
-      { type: 'tunnel', x: -3, z: 28 },
-      { type: 'jump',   x:  3, z: 42 },
-    ],
-  },
-  {
-    name: 'אמן הסללום', subtitle: 'קפיצות, צמיג וסללום!',
-    gold: 32000, silver: 50000,
-    obstacles: [
-      { type: 'jump',   x:  0, z:  0 },
-      { type: 'tunnel', x: -3, z: 14 },
-      { type: 'tire',   x:  3, z: 28 },
-      { type: 'weave',  x: -2, z: 42 },
-      { type: 'jump',   x:  3, z: 58 },
-    ],
-  },
-  {
-    name: 'מגע קסם', subtitle: 'A-Frame, הליכון, צמיג ושולחן עמידה!',
-    gold: 50000, silver: 75000,
-    obstacles: [
-      { type: 'jump',    x:  0, z:  0  },
-      { type: 'tire',    x:  4, z: 14  },
-      { type: 'tunnel',  x: -3, z: 28  },
-      { type: 'pause',   x:  3, z: 42  },
-      { type: 'aframe',  x: -3, z: 58  },
-      { type: 'dogwalk', x:  3, z: 76  },
-    ],
-  },
-  {
-    name: 'אליפות', subtitle: 'המסלול המלא – כל המכשולים!',
-    gold: 80000, silver: 120000,
-    obstacles: [
-      { type: 'jump',    x:  0, z:  0  },
-      { type: 'tunnel',  x: -3, z: 14  },
-      { type: 'tire',    x:  3, z: 28  },
-      { type: 'weave',   x: -2, z: 42  },
-      { type: 'pause',   x:  3, z: 58  },
-      { type: 'aframe',  x: -3, z: 72  },
-      { type: 'seesaw',  x:  3, z: 90  },
-      { type: 'dogwalk', x: -3, z: 108 },
-      { type: 'jump',    x:  0, z: 124 },
-    ],
-  },
-];
+// ── Long Jump builder ─────────────────────────
+// 3 flat boards on the ground — dog runs and jumps over them
+function makeLongJump(cx, cz, index, col = []) {
+  const isNext  = index === 0;
+  const N       = 3;       // number of boards
+  const BOARD_L = 1.2;     // each board length along Z
+  const BOARD_W = 2.4;
+  const BOARD_H = 0.12;
+  const GAP     = 0.3;
+  const totalLen = N * BOARD_L + (N - 1) * GAP;
+
+  const baseMat   = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
+  const stripeMat = new THREE.MeshLambertMaterial({ color: isNext ? 0xffeb3b : COL_DEFAULT });
+
+  for (let i = 0; i < N; i++) {
+    const bz = cz - totalLen / 2 + i * (BOARD_L + GAP) + BOARD_L / 2;
+    const board = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W, BOARD_H, BOARD_L), baseMat);
+    board.position.set(cx, BOARD_H / 2, bz);
+    board.castShadow = true; board.receiveShadow = true;
+    scene.add(board); col.push(board);
+    // Red stripe on top
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W, 0.02, 0.12), stripeMat);
+    stripe.position.set(cx, BOARD_H + 0.01, bz - BOARD_L / 2 + 0.06);
+    scene.add(stripe); col.push(stripe);
+  }
+
+  // Marker posts at each end
+  const postMat = new THREE.MeshLambertMaterial({ color: 0xff3333 });
+  [-1, 1].forEach(sx => {
+    [-totalLen/2, totalLen/2].forEach(dz2 => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), postMat);
+      post.position.set(cx + sx * (BOARD_W/2 + 0.18), 0.45, cz + dz2);
+      scene.add(post); col.push(post);
+    });
+  });
+
+  const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, 2.0, cz);
+  scene.add(disc); col.push(disc);
+
+  const statusMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
+  const indPost = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 6), statusMat);
+  indPost.position.set(cx, 0.2, cz - totalLen/2 - 0.5);
+  scene.add(indPost); col.push(indPost);
+
+  return {
+    type: 'longjump',
+    statusMat, disc, discTex: tex, canvas, ctx,
+    pos: new THREE.Vector3(cx, 0, cz),
+    totalLen, BOARD_H,
+    triggerR: totalLen / 2 + 1.8,
+    cleared: false, index,
+    state: 'idle',
+    crossState: 'before',
+  };
+}
+
+// ── Water Jump builder ─────────────────────────
+// Blue pool on the ground — dog must jump clean over it
+function makeWaterJump(cx, cz, index, col = []) {
+  const isNext  = index === 0;
+  const W = 2.4, D = 2.8, H = 0.15;  // width, depth (along Z), height
+
+  // Water surface
+  const waterMat = new THREE.MeshLambertMaterial({ color: 0x1a7abf, transparent: true, opacity: 0.85 });
+  const water = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), waterMat);
+  water.position.set(cx, H / 2, cz);
+  scene.add(water); col.push(water);
+
+  // Ripple lines on surface
+  const rippleMat = new THREE.MeshBasicMaterial({ color: 0x5ab4e8, transparent: true, opacity: 0.5 });
+  [0.6, 0, -0.6].forEach(dz => {
+    const ripple = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.7, 0.06), rippleMat);
+    ripple.rotation.x = -Math.PI / 2;
+    ripple.position.set(cx, H + 0.01, cz + dz);
+    scene.add(ripple); col.push(ripple);
+  });
+
+  // Border planks
+  const borderMat = new THREE.MeshLambertMaterial({ color: 0x8b6914 });
+  [D/2, -D/2].forEach(dz => {
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(W + 0.3, 0.1, 0.18), borderMat);
+    plank.position.set(cx, H + 0.05, cz + dz);
+    scene.add(plank); col.push(plank);
+  });
+
+  const statusMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
+  const indPost = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 6), statusMat);
+  indPost.position.set(cx, 0.2, cz - D/2 - 0.5);
+  scene.add(indPost); col.push(indPost);
+
+  const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, 2.2, cz);
+  scene.add(disc); col.push(disc);
+
+  return {
+    type: 'water',
+    statusMat, disc, discTex: tex, canvas, ctx,
+    pos: new THREE.Vector3(cx, 0, cz),
+    D, WATER_H: H,
+    cleared: false, index,
+    state: 'idle',
+    crossState: 'before',
+  };
+}
+
+// ── Moving Jump builder ────────────────────────
+// A jump bar that slides left/right — dog must time entry
+function makeMovingJump(cx, cz, index, col = []) {
+  const isNext = index === 0;
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
+
+  // Base rail that the jump slides along
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.08, 0.08), railMat);
+  rail.position.set(cx, 1.0, cz);
+  scene.add(rail); col.push(rail);
+
+  // The sliding jump group
+  const slideGroup = new THREE.Group();
+  slideGroup.position.set(cx, 0, cz);
+  scene.add(slideGroup);
+
+  // Poles
+  [-1.4, 1.4].forEach(s => {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.2, 8), poleMat);
+    pole.position.set(s, 1.1, 0); pole.castShadow = true; slideGroup.add(pole);
+  });
+
+  // Striped bar
+  const barGroup = new THREE.Group();
+  const BAR_LEN = 3.0, SEGS = 6, segLen = BAR_LEN / SEGS;
+  const barMat0 = new THREE.MeshLambertMaterial({ color: isNext ? 0xffeb3b : 0xe53935 });
+  for (let s = 0; s < SEGS; s++) {
+    const segMat = s % 2 === 0 ? barMat0 : new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, segLen, 8), segMat);
+    seg.rotation.z = Math.PI / 2;
+    seg.position.set(-BAR_LEN/2 + segLen*(s+0.5), 0, 0);
+    barGroup.add(seg);
+  }
+  barGroup.position.set(0, 1.1, 0);
+  slideGroup.add(barGroup);
+
+  // Motion arrow indicator on ground
+  const arrowIndMat = new THREE.MeshBasicMaterial({ color: 0xff6f00, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+  const arrowInd = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 1.0), arrowIndMat);
+  arrowInd.rotation.x = -Math.PI / 2;
+  arrowInd.position.set(cx + 2, 0.02, cz);
+  scene.add(arrowInd); col.push(arrowInd);
+
+  const statusMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
+  barMat0.color.setHex(isNext ? COL_NEXT : COL_DEFAULT);
+
+  const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
+  disc.position.set(cx, 3.2, cz);
+  scene.add(disc); col.push(disc);
+
+  col.push(slideGroup);
+
+  return {
+    type:     'moving',
+    slideGroup, barMat0, statusMat, disc, discTex: tex, canvas, ctx,
+    pos:      new THREE.Vector3(cx, 0, cz),
+    barY:     1.1,
+    triggerR: 2.4,
+    cleared:  false, index,
+    state:    'idle',
+    crossState: 'before',
+    // motion state
+    phase: Math.random() * Math.PI * 2,  // random start phase
+    speed: 1.4 + Math.random() * 0.8,    // oscillation speed (rad/s)
+    amp:   1.8,                           // X amplitude
+  };
+}
+
+// ── Random course generator ────────────────────
+// Replaces fixed LEVEL_DEFS. Each run generates a fresh course.
+
+// Pool of obstacle types by difficulty tier
+const OBS_POOL = {
+  easy:   ['jump', 'jump', 'tunnel'],
+  medium: ['jump', 'tunnel', 'tire', 'weave', 'longjump', 'water'],
+  hard:   ['jump', 'tunnel', 'tire', 'weave', 'longjump', 'water', 'aframe', 'dogwalk', 'pause', 'seesaw', 'moving'],
+};
+
+// Spacing between obstacles (along Z) per type
+function obsSpacing(type) {
+  const map = { tunnel:18, weave:20, aframe:22, dogwalk:22, seesaw:18, pause:16,
+                longjump:14, water:16, moving:16 };
+  return map[type] || 14;
+}
+
+// How wide is the obstacle (for X offset randomisation)
+function obsHalfWidth(type) {
+  const map = { weave:3, aframe:4, dogwalk:4, seesaw:4, tunnel:3 };
+  return map[type] || 4;
+}
+
+let currentRunNumber = 0; // managed in boot section
+
+function generateCourse(runNum) {
+  const tier = runNum < 3 ? 'easy' : runNum < 6 ? 'medium' : 'hard';
+  const count = Math.min(4 + Math.floor(runNum / 2), 10);
+
+  // Build pool with duplicates to allow repeats of common obstacles
+  const rawPool = OBS_POOL[tier];
+  const picked = ['jump']; // always start with a jump
+
+  while (picked.length < count) {
+    const last = picked[picked.length - 1];
+    // Weight: common types appear 3× more often
+    const weighted = [];
+    rawPool.forEach(t => {
+      const freq = (t === 'jump' || t === 'tunnel') ? 3 : 1;
+      for (let f = 0; f < freq; f++) weighted.push(t);
+    });
+    const candidates = weighted.filter(t => t !== last);
+    picked.push(candidates[Math.floor(Math.random() * candidates.length)]);
+  }
+
+  // ── True random winding path ──────────────────
+  // Each step: random Z spacing + random X swing with momentum
+  const obstacles = [];
+  let cx = 0, cz = 0;
+  let drift = 0; // running lateral momentum
+
+  picked.forEach((type, i) => {
+    if (i === 0) {
+      obstacles.push({ type, x: 0, z: 0 });
+      cz += obsSpacing(type) + Math.random() * 4; // variable gap even from start
+      return;
+    }
+
+    // Lateral: momentum carries previous direction but randomly changes
+    drift += (Math.random() - 0.5) * 7;          // random push
+    drift  = Math.max(-6, Math.min(6, drift));    // cap momentum
+    const nx = Math.max(-9, Math.min(9, cx + drift));
+
+    // Variable Z gap: base spacing ± 30%
+    const baseGap = obsSpacing(type);
+    const gap = baseGap * (0.75 + Math.random() * 0.55);
+
+    cx = Math.round(nx * 10) / 10;
+    obstacles.push({ type, x: cx, z: Math.round(cz * 10) / 10 });
+    cz += gap;
+  });
+
+  const baseTime = 8000 + count * 4000;
+  const diffMult = tier === 'easy' ? 1.4 : tier === 'medium' ? 1.2 : 1.0;
+
+  const levelNames = ['חימום','מהירות','אתגר','פרו','מאסטר','אליפות','גרנד-פרי','סופר-קאפ','פינאל','אגדה'];
+  return {
+    name: levelNames[Math.min(runNum, levelNames.length - 1)],
+    subtitle: `מסלול #${runNum + 1} — ${count} מכשולים`,
+    gold:   Math.round(baseTime * diffMult * 0.7),
+    silver: Math.round(baseTime * diffMult),
+    obstacles,
+  };
+}
+
+// LEVEL_DEFS is now a single-element array that gets regenerated per run
+let LEVEL_DEFS = [generateCourse(0)];
+
+// Keep compatibility — "level 0" is always the current run
+function regenerateCourse() {
+  LEVEL_DEFS = [generateCourse(currentRunNumber)];
+}
+
+
 
 // ── Active level state ─────────────────────────
 let currentLevel = 0; // 0-indexed
@@ -1647,17 +1893,21 @@ function clearSceneObstacles() {
 
 function buildLevel(levelIndex) {
   clearSceneObstacles();
+  regenerateCourse(); // fresh random course each time
 
-  const def = LEVEL_DEFS[levelIndex];
+  const def = LEVEL_DEFS[0]; // always index 0
   courseObstacles = def.obstacles.map((spec, idx) => {
-    if (spec.type === 'jump')    return makeCourseJump(spec.x, spec.z, idx, 0, sceneObstacleObjects);
-    if (spec.type === 'tunnel')  return makeTunnel(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'weave')   return makeWeave(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'aframe')  return makeContactObstacle('aframe',  spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'dogwalk') return makeContactObstacle('dogwalk', spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'tire')    return makeTireJump(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'pause')   return makePauseTable(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'seesaw')  return makeSeesaw(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'jump')      return makeCourseJump(spec.x, spec.z, idx, 0, sceneObstacleObjects);
+    if (spec.type === 'tunnel')    return makeTunnel(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'weave')     return makeWeave(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'aframe')    return makeContactObstacle('aframe',  spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'dogwalk')   return makeContactObstacle('dogwalk', spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'tire')      return makeTireJump(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'pause')     return makePauseTable(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'seesaw')    return makeSeesaw(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'longjump')  return makeLongJump(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'water')     return makeWaterJump(spec.x, spec.z, idx, sceneObstacleObjects);
+    if (spec.type === 'moving')    return makeMovingJump(spec.x, spec.z, idx, sceneObstacleObjects);
     return null;
   }).filter(Boolean);
 
@@ -1704,6 +1954,9 @@ function obsLabel(i) {
   if (obs.type === 'tire')    return `צמיג (${i+1})`;
   if (obs.type === 'pause')   return `שולחן עמידה (${i+1})`;
   if (obs.type === 'seesaw')  return `נדנדה (${i+1})`;
+  if (obs.type === 'longjump') return `קיר קפיצה (${i+1})`;
+  if (obs.type === 'water')    return `מכשול מים (${i+1})`;
+  if (obs.type === 'moving')   return `מכשול נע (${i+1})`;
   return `קפיצה ${i+1}`;
 }
 
@@ -1759,7 +2012,10 @@ function setObsColour(obs, hex) {
   if (obs.type === 'contact') obs.statusMat.color.setHex(hex);
   if (obs.type === 'tire')    obs.tireMat.color.setHex(hex);
   if (obs.type === 'pause')   obs.topMat.color.setHex(hex);
-  if (obs.type === 'seesaw')  obs.statusMat.color.setHex(hex);
+  if (obs.type === 'seesaw')    obs.statusMat.color.setHex(hex);
+  if (obs.type === 'longjump')  obs.statusMat.color.setHex(hex);
+  if (obs.type === 'water')     obs.statusMat.color.setHex(hex);
+  if (obs.type === 'moving')  { obs.statusMat.color.setHex(hex); obs.barMat0.color.setHex(hex); }
 }
 
 // Initialise colours + discs
@@ -2220,6 +2476,89 @@ function checkCourse(playerPos, now) {
         }
       }
     }  // end seesaw
+
+    // ── Long Jump ─────────────────────────────
+    else if (obs.type === 'longjump') {
+      if (autopilot && autopilot.obsIndex === i) return;
+      if (obs.cleared) return;
+      const dx = playerPos.x - obs.pos.x;
+      const dz = playerPos.z - obs.pos.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      if (dist < obs.triggerR && obs.crossState === 'before') {
+        if (i !== currentObstacle) { wrongObstacle(obs, now); obs.crossState = 'cleared'; return; }
+        obs.crossState = 'cleared';
+        showMsg('🐾 קיר קפיצה!', 'good', 0);
+        // Arc over boards
+        const cx = obs.pos.x, cz2 = obs.pos.z, half = obs.totalLen / 2;
+        const pts = [];
+        const N = 14;
+        for (let k = 0; k <= N; k++) {
+          const t = k / N;
+          const pz = cz2 - half - 1.5 + (half * 2 + 3.0) * t;
+          const py = Math.sin(t * Math.PI) * 1.4;
+          pts.push(new THREE.Vector3(cx, Math.max(0, py), pz));
+        }
+        startAutopilot(i, pts, 7, () => {
+          clearObstacle(i, performance.now());
+        });
+      }
+    }
+
+    // ── Water Jump ────────────────────────────
+    else if (obs.type === 'water') {
+      if (autopilot && autopilot.obsIndex === i) return;
+      if (obs.cleared) return;
+      const dx = playerPos.x - obs.pos.x;
+      const dz = playerPos.z - obs.pos.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      const approach = obs.D / 2 + 2.0;
+      if (Math.abs(dz) < approach && Math.abs(dx) < 2.5 && obs.crossState === 'before') {
+        if (i !== currentObstacle) { wrongObstacle(obs, now); obs.crossState = 'cleared'; return; }
+        obs.crossState = 'cleared';
+        showMsg('🐾 מכשול מים!', 'good', 0);
+        const cx = obs.pos.x, cz2 = obs.pos.z, half = obs.D / 2;
+        const pts = [];
+        const N = 14;
+        for (let k = 0; k <= N; k++) {
+          const t = k / N;
+          const pz = cz2 - half - 1.2 + (half * 2 + 2.4) * t;
+          const py = Math.sin(t * Math.PI) * 1.6;
+          pts.push(new THREE.Vector3(cx, Math.max(0, py), pz));
+        }
+        startAutopilot(i, pts, 7, () => {
+          clearObstacle(i, performance.now());
+        });
+      }
+    }
+
+    // ── Moving Jump ───────────────────────────
+    else if (obs.type === 'moving') {
+      if (autopilot && autopilot.obsIndex === i) return;
+      if (obs.cleared) return;
+      const slidePosX = obs.slideGroup.position.x;
+      const dx = playerPos.x - slidePosX;
+      const dz = playerPos.z - obs.pos.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      if (dist < obs.triggerR && obs.crossState === 'before') {
+        if (i !== currentObstacle) { wrongObstacle(obs, now); obs.crossState = 'cleared'; return; }
+        obs.crossState = 'cleared';
+        showMsg('🐾 מכשול נע!', 'good', 0);
+        // Arc through jump at current slide position
+        const cx = slidePosX, cz2 = obs.pos.z;
+        const pts = [];
+        const N = 12;
+        for (let k = 0; k <= N; k++) {
+          const t = k / N;
+          const pz = cz2 - 2.5 + 5.0 * t;
+          const py = Math.sin(t * Math.PI) * 1.5;
+          pts.push(new THREE.Vector3(cx, Math.max(0, py), pz));
+        }
+        startAutopilot(i, pts, 8, () => {
+          clearObstacle(i, performance.now());
+        });
+      }
+    }
+
   });
 
   prevPlayerZ = playerPos.z;
@@ -2716,6 +3055,15 @@ function updateHandler(dt, dogPos, dogMoving) {
   hArmR.rotation.x =  Math.sin(handlerLegTime)           * armSwing;
 }
 
+// ── Animate moving obstacles ──────────────────
+function updateMovingObstacles(dt) {
+  courseObstacles.forEach(obs => {
+    if (obs.type !== 'moving' || obs.cleared) return;
+    obs.phase += obs.speed * dt;
+    obs.slideGroup.position.x = obs.pos.x + Math.sin(obs.phase) * obs.amp;
+  });
+}
+
 // ── Main loop ─────────────────────────────────
 const clock = new THREE.Clock();
 
@@ -2843,6 +3191,7 @@ function animate() {
   updatePathLines();
   tickCrowdWaves(nowMs);
   updateSeesawTilt();
+  updateMovingObstacles(dt);
   updateHandler(dt, player.pos, moving);
 
   // ══ 7. ANIMATION ══════════════════════════════
@@ -2934,18 +3283,24 @@ function getObsEntry(obs) {
   if (obs.type === 'contact') return new THREE.Vector3(obs.cx, 0, obs.entryContactZ);
   if (obs.type === 'tire')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
   if (obs.type === 'pause')   return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
-  if (obs.type === 'seesaw')  return new THREE.Vector3(obs.cx, 0, obs.entryContactZ);
+  if (obs.type === 'seesaw')    return new THREE.Vector3(obs.cx, 0, obs.entryContactZ);
+  if (obs.type === 'longjump')  return new THREE.Vector3(obs.pos.x, 0, obs.pos.z - obs.totalLen/2);
+  if (obs.type === 'water')     return new THREE.Vector3(obs.pos.x, 0, obs.pos.z - obs.D/2);
+  if (obs.type === 'moving')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
   return new THREE.Vector3(0, 0, 0);
 }
 
 function getObsExit(obs) {
-  if (obs.type === 'jump')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
-  if (obs.type === 'tunnel')  return new THREE.Vector3(obs.exitPos.x, 0, obs.exitPos.z);
-  if (obs.type === 'weave')   return new THREE.Vector3(obs.cx, 0, obs.poleZs[obs.NUM_POLES - 1]);
-  if (obs.type === 'contact') return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
-  if (obs.type === 'tire')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + 2);
-  if (obs.type === 'pause')   return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
-  if (obs.type === 'seesaw')  return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
+  if (obs.type === 'jump')      return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'tunnel')    return new THREE.Vector3(obs.exitPos.x, 0, obs.exitPos.z);
+  if (obs.type === 'weave')     return new THREE.Vector3(obs.cx, 0, obs.poleZs[obs.NUM_POLES - 1]);
+  if (obs.type === 'contact')   return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
+  if (obs.type === 'tire')      return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + 2);
+  if (obs.type === 'pause')     return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'seesaw')    return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
+  if (obs.type === 'longjump')  return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + obs.totalLen/2);
+  if (obs.type === 'water')     return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + obs.D/2);
+  if (obs.type === 'moving')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + 2);
   return new THREE.Vector3(0, 0, 0);
 }
 
@@ -3002,7 +3357,10 @@ function getObsGroundPos(obs) {
   if (obs.type === 'contact') return new THREE.Vector3(obs.cx, 0.02, obs.entryContactZ);
   if (obs.type === 'tire')    return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
   if (obs.type === 'pause')   return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
-  if (obs.type === 'seesaw')  return new THREE.Vector3(obs.cx, 0.02, obs.entryContactZ);
+  if (obs.type === 'seesaw')   return new THREE.Vector3(obs.cx, 0.02, obs.entryContactZ);
+  if (obs.type === 'longjump') return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
+  if (obs.type === 'water')    return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
+  if (obs.type === 'moving')   return new THREE.Vector3(obs.pos.x, 0.02, obs.pos.z);
   return new THREE.Vector3(0, 0.02, 0);
 }
 
@@ -3107,7 +3465,7 @@ function setPaused(val) {
 }
 
 document.getElementById('pause-resume-btn').onclick  = () => setPaused(false);
-document.getElementById('pause-restart-btn').onclick = () => { setPaused(false); startLevel(currentLevel); };
+document.getElementById('pause-restart-btn').onclick = () => { setPaused(false); currentRunNumber--; startLevel(0); };
 document.getElementById('pause-lvl1-btn').onclick    = () => { setPaused(false); startLevel(0); };
 document.getElementById('pause-charselect-btn').onclick = () => returnToCharSelect();
 document.getElementById('pause-btn').onclick         = () => {
@@ -3185,11 +3543,12 @@ const levelIndValue  = document.getElementById('level-indicator-value');
 function obsTypeLabel(type) {
   return { jump: '🏃 קפיצה', tunnel: '🌀 מנהרה', weave: '〰️ סללום',
            aframe: '🔺 A-Frame', dogwalk: '🌉 הליכון',
-           tire: '⭕ צמיג', pause: '⏸ שולחן עמידה', seesaw: '⚖️ נדנדה' }[type] || type;
+           tire: '⭕ צמיג', pause: '⏸ שולחן עמידה', seesaw: '⚖️ נדנדה',
+           longjump: '↔️ קיר קפיצה', water: '💧 מכשול מים', moving: '↔️ מכשול נע' }[type] || type;
 }
 
 function getStars(ms, levelIndex) {
-  const def = LEVEL_DEFS[levelIndex];
+  const def = LEVEL_DEFS[0];
   if (!def) return '⭐';
   if (ms <= def.gold)   return '⭐⭐⭐';
   if (ms <= def.silver) return '⭐⭐';
@@ -3197,19 +3556,18 @@ function getStars(ms, levelIndex) {
 }
 
 function getSavedStars(levelIndex) {
-  try { return parseInt(localStorage.getItem(`stars_${levelIndex}`)) || 0; } catch { return 0; }
+  try { return parseInt(localStorage.getItem(`stars_run${currentRunNumber}`)) || 0; } catch { return 0; }
 }
 function saveStars(levelIndex, starCount) {
-  try { localStorage.setItem(`stars_${levelIndex}`, String(starCount)); } catch {}
+  try { localStorage.setItem(`stars_run${currentRunNumber}`, String(starCount)); } catch {}
 }
 
 function showLevelStart(levelIndex) {
-  const def = LEVEL_DEFS[levelIndex];
-  const isChamp = levelIndex === LEVEL_DEFS.length - 1;
+  const def = LEVEL_DEFS[0];
 
-  levelCard.className = isChamp ? 'championship' : '';
-  levelBadge.textContent  = `שלב ${levelIndex + 1}`;
-  levelTitle.textContent  = def.name;
+  levelCard.className = currentRunNumber >= 6 ? 'championship' : '';
+  levelBadge.textContent    = `ריצה #${currentRunNumber + 1}`;
+  levelTitle.textContent    = def.name;
   levelSubtitle.textContent = def.subtitle;
 
   // Obstacle tags
@@ -3230,7 +3588,7 @@ function showLevelStart(levelIndex) {
   levelBtnRow.innerHTML = '';
   const startBtn = document.createElement('button');
   startBtn.className   = 'level-btn btn-primary';
-  startBtn.textContent = levelIndex === 0 ? '🐾 התחל משחק' : '🐾 קדימה!';
+  startBtn.textContent = currentRunNumber === 0 ? '🐾 התחל משחק' : '🐾 קדימה!';
   startBtn.onclick = () => {
     hideLevelOverlay();
     resetCourseState();
@@ -3240,15 +3598,6 @@ function showLevelStart(levelIndex) {
     });
   };
   levelBtnRow.appendChild(startBtn);
-
-  if (levelIndex > 0) {
-    const restartBtn = document.createElement('button');
-    restartBtn.className   = 'level-btn btn-ghost-sm';
-    restartBtn.textContent = '↩ שלב 1';
-    restartBtn.onclick = () => { startLevel(0); };
-    levelBtnRow.appendChild(restartBtn);
-  }
-
   showLevelOverlay(false);
 }
 
@@ -3256,16 +3605,16 @@ function showLevelStart(levelIndex) {
 //  FINISH SCREEN — confetti + leaderboard
 // ═══════════════════════════════════════════════
 
-// ── Leaderboard (localStorage per level) ──────
+// ── Leaderboard (localStorage, global across all runs) ──────
 function getLB(levelIdx) {
-  try { return JSON.parse(localStorage.getItem(`agility_lb_${levelIdx}`)) || []; } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(`agility_lb_global`)) || []; } catch { return []; }
 }
 function saveLB(levelIdx, entries) {
-  try { localStorage.setItem(`agility_lb_${levelIdx}`, JSON.stringify(entries)); } catch {}
+  try { localStorage.setItem(`agility_lb_global`, JSON.stringify(entries)); } catch {}
 }
 function addToLB(levelIdx, name, ms) {
   const entries = getLB(levelIdx);
-  entries.push({ name, ms });
+  entries.push({ name, ms, run: levelIdx + 1 });
   entries.sort((a, b) => a.ms - b.ms);
   const trimmed = entries.slice(0, 8);
   saveLB(levelIdx, trimmed);
@@ -3360,14 +3709,14 @@ function showFinishScreen(levelIdx, ms, formattedTime, isNewBest, isLast) {
   _finishLevelIdx = levelIdx;
   _finishMs = ms;
 
-  const def = LEVEL_DEFS[levelIdx];
-  document.getElementById('finish-trophy').textContent   = isLast ? '🏆' : '✅';
-  document.getElementById('finish-badge').textContent    = isLast ? 'CoolDog · אליפות' : `CoolDog · שלב ${levelIdx + 1}`;
-  document.getElementById('finish-title').textContent    = isLast ? 'אלוף!' : def.name;
-  document.getElementById('finish-subtitle').textContent = isLast ? 'כבשת את המסלול המלא!' : 'המסלול הושלם!';
+  document.getElementById('finish-trophy').textContent   = currentRunNumber >= 6 ? '🏆' : '✅';
+  document.getElementById('finish-badge').textContent    = `CoolDog · ריצה #${levelIdx + 1}`;
+  document.getElementById('finish-title').textContent    = LEVEL_DEFS[0].name;
+  document.getElementById('finish-subtitle').textContent = LEVEL_DEFS[0].subtitle;
   document.getElementById('finish-time-big').textContent = formattedTime;
   document.getElementById('finish-stars').textContent    = getStars(ms, levelIdx);
-  document.getElementById('lb-level-num').textContent    = levelIdx + 1;
+  const lbLevelEl = document.getElementById('lb-level-num');
+  if (lbLevelEl) lbLevelEl.textContent = '';
   document.getElementById('finish-newbest').classList.toggle('show', isNewBest);
 
   // Reset save button
@@ -3378,37 +3727,8 @@ function showFinishScreen(levelIdx, ms, formattedTime, isNewBest, isLast) {
   // Load existing leaderboard
   renderLB(getLB(levelIdx), null);
 
-  // Buttons
-  const btnRow = document.getElementById('finish-btn-row');
-  btnRow.innerHTML = '';
-  if (!isLast) {
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn';
-    nextBtn.textContent = `שלב ${levelIdx + 2} ←`;
-    nextBtn.onclick = () => { hideFinishScreen(); startLevel(levelIdx + 1); };
-    btnRow.appendChild(nextBtn);
-  } else {
-    const replayBtn = document.createElement('button');
-    replayBtn.className = 'btn';
-    replayBtn.textContent = '🏆 שחק שוב';
-    replayBtn.onclick = () => { hideFinishScreen(); startLevel(0); };
-    btnRow.appendChild(replayBtn);
-  }
-  const retryBtn = document.createElement('button');
-  retryBtn.className = 'btn btn-ghost';
-  retryBtn.style.cssText = 'background:transparent;border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.55);';
-  retryBtn.textContent = '↩ נסה שוב';
-  retryBtn.onclick = () => { hideFinishScreen(); startLevel(levelIdx); };
-  btnRow.appendChild(retryBtn);
-
-  const dogBtn = document.createElement('button');
-  dogBtn.className = 'btn btn-ghost';
-  dogBtn.style.cssText = 'background:transparent;border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.55);';
-  dogBtn.textContent = '🐕 בחר כלב';
-  dogBtn.onclick = () => { hideFinishScreen(); returnToCharSelect(); };
-  btnRow.appendChild(dogBtn);
-
   document.getElementById('finish-screen').classList.add('visible');
+  gameInputLocked = false;
   launchConfetti();
 }
 
@@ -3418,16 +3738,11 @@ function hideFinishScreen() {
 }
 
 function showLevelComplete(formattedTime) {
-  const def    = LEVEL_DEFS[currentLevel];
-  const isLast = currentLevel === LEVEL_DEFS.length - 1;
-
-  // Stars & PB
-  const stars    = getStars(timerFinal, currentLevel);
+  const stars    = getStars(timerFinal, 0);
   const numStars = (stars.match(/⭐/g) || []).length;
-  if (numStars > getSavedStars(currentLevel)) saveStars(currentLevel, numStars);
-  const isNewBest = checkAndSavePB(currentLevel, timerFinal);
-
-  showFinishScreen(currentLevel, timerFinal, formattedTime, isNewBest, isLast);
+  if (numStars > getSavedStars(0)) saveStars(0, numStars);
+  const isNewBest = checkAndSavePB(currentRunNumber, timerFinal);
+  showFinishScreen(currentRunNumber, timerFinal, formattedTime, isNewBest, false);
 }
 
 function showLevelOverlay(isCompletion) {
@@ -3505,7 +3820,10 @@ function resetCourseState() {
     if (o.type === 'contact') { o.state = 'idle'; o.penaltyApplied = false; }
     if (o.type === 'tire')    { o.state = 'idle'; }
     if (o.type === 'pause')   { o.state = 'idle'; o.waitStart = 0; }
-    if (o.type === 'seesaw')  { o.state = 'idle'; if (o.plank) o.plank.rotation.x = -0.18; }
+    if (o.type === 'seesaw')   { o.state = 'idle'; if (o.plank) o.plank.rotation.x = -0.18; }
+    if (o.type === 'longjump') { o.crossState = 'before'; }
+    if (o.type === 'water')    { o.crossState = 'before'; }
+    if (o.type === 'moving')   { o.state = 'idle'; o.crossState = 'before'; }
     setObsColour(o, o.index === 0 ? COL_NEXT : COL_DEFAULT);
     refreshDiscTexture(o);
   });
@@ -3521,13 +3839,14 @@ function resetCourseState() {
 }
 
 function startLevel(levelIndex) {
-  currentLevel = levelIndex;
-  levelIndValue.textContent = String(levelIndex + 1);
+  currentRunNumber++; // new random course every run
+  currentLevel = 0;   // always 0 — single-level system
+  levelIndValue.textContent = String(currentRunNumber);
   hideLevelOverlay();
-  buildLevel(levelIndex);
+  buildLevel(0);
   resetPlayerToSpawn();
   resetCourseState();
-  showLevelStart(levelIndex);
+  showLevelStart(0);
 }
 
 // ── Character select ─────────────────────────
@@ -3545,10 +3864,12 @@ function returnToCharSelect() {
   hideLevelOverlay();
   isPaused = false;
   courseComplete = false;
+  currentRunNumber = 0;
   document.getElementById('char-select').classList.add('active');
 }
 
 function startGame() {
+  currentRunNumber = 0;
   rebuildDog(selectedDog);
   document.getElementById('char-select').classList.remove('active');
   showLevelStart(0);
