@@ -159,21 +159,7 @@
     }
     #newbest-flash.show { opacity: 1; }
 
-    /* ── PB DISPLAY ── */
-    #pb-display {
-      position: fixed; top: 72px; left: 20px;
-      pointer-events: none; text-align: right; direction:ltr;
-      opacity: 0; transition: opacity 0.4s;
-    }
-    #pb-display.visible { opacity: 1; }
-    #pb-label {
-      font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
-      text-transform:uppercase; color: rgba(212,160,23,0.6);
-    }
-    #pb-value {
-      font-family:'Oswald',sans-serif; font-size:1.05rem; font-weight:700;
-      color: rgba(212,160,23,0.85); letter-spacing:0.04em;
-    }
+
 
     /* ── LEVEL INDICATOR ── */
     #level-indicator {
@@ -767,10 +753,7 @@
 </div>
 
 <!-- Personal best -->
-<div id="pb-display">
-  <div id="pb-label">שיא אישי</div>
-  <div id="pb-value">--:--.--</div>
-</div>
+
 <div id="newbest-flash">🏆 שיא חדש!</div>
 
 <!-- Level start / completion overlay -->
@@ -817,7 +800,8 @@ if (isMobile) {
 
 // ── Renderer ──────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Cap pixel ratio at 1.5 — prevents heavy rendering on high-DPI desktop screens
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = false;
 document.getElementById('canvas-container').appendChild(renderer.domElement);
@@ -1040,97 +1024,224 @@ makeBuntingLine(-22, -8, -22, 135, 36, buntingColors);
 makeBuntingLine( 22, -8,  22, 135, 36, buntingColors);
 makeBuntingLine(-22, -8,  22, -8,  8, buntingColors);
 
-// ── Crowd spectators ───────────────────────────
-function makeSpectator(x, z, shirtColor, rotY) {
-  const g = new THREE.Group();
-  // Body
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 0.55, 0.25),
-    new THREE.MeshLambertMaterial({ color: shirtColor })
-  );
-  body.position.set(0, 0.85, 0);
-  g.add(body);
-  // Head
-  const head = new THREE.Mesh(
-    new THREE.BoxGeometry(0.28, 0.28, 0.28),
-    new THREE.MeshLambertMaterial({ color: [0xf5cba7, 0xe8b89a, 0xd4956a, 0xc68642][Math.floor(Math.random()*4)] })
-  );
-  head.position.set(0, 1.35, 0);
-  g.add(head);
-  // Arms raised in excitement (random)
-  const armAngle = Math.random() > 0.4 ? -Math.PI * 0.6 : -Math.PI * 0.1;
-  [-0.25, 0.25].forEach(sx => {
-    const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 0.42, 0.12),
-      new THREE.MeshLambertMaterial({ color: shirtColor })
-    );
-    arm.position.set(sx * 2.2, 0.95, 0);
-    arm.rotation.z = sx > 0 ? armAngle : -armAngle;
-    g.add(arm);
+// ── Bleacher stands — USDDN style ──────────────
+(function buildStands() {
+  const concMat  = new THREE.MeshStandardMaterial({ color: 0x888c94, roughness: 0.9, metalness: 0.05 });
+  const roofMat  = new THREE.MeshStandardMaterial({ color: 0x333740, roughness: 0.7, metalness: 0.25 });
+  const fasciaMat = new THREE.MeshStandardMaterial({ color: 0x6a7080, roughness: 0.85, metalness: 0.05 });
+
+  const ROWS   = 5;
+  const RISE   = 1.1;
+  const TREAD  = 1.2;
+  const ZLEN   = 155;
+  const ZSTART = -10;
+  const ZCEN   = ZSTART + ZLEN / 2;
+
+  [-1, 1].forEach(side => {
+    const xBase = side * 26.5;
+
+    // Foundation slab
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(ROWS * TREAD + 2, 0.4, ZLEN), concMat);
+    slab.position.set(xBase + side * (ROWS * TREAD / 2), -0.2, ZCEN);
+    scene.add(slab);
+
+    // Stepped tiers
+    for (let row = 0; row < ROWS; row++) {
+      const stepH = (row + 1) * RISE;
+      // Riser (vertical face)
+      const riser = new THREE.Mesh(new THREE.BoxGeometry(0.2, stepH, ZLEN), concMat);
+      riser.position.set(xBase + side * row * TREAD, stepH / 2, ZCEN);
+      scene.add(riser);
+      // Tread (horizontal step)
+      const tread = new THREE.Mesh(new THREE.BoxGeometry(TREAD, 0.18, ZLEN), concMat);
+      tread.position.set(xBase + side * (row * TREAD + TREAD * 0.5), row * RISE + 0.09, ZCEN);
+      scene.add(tread);
+    }
+
+    // Roof
+    const roofW = ROWS * TREAD + 2;
+    const roofH = ROWS * RISE + 3.2;
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(roofW, 0.28, ZLEN), roofMat);
+    roof.position.set(xBase + side * (roofW / 2 - 0.5), roofH, ZCEN);
+    scene.add(roof);
+
+    // Roof underside
+    const roofUnder = new THREE.Mesh(new THREE.BoxGeometry(roofW, 0.1, ZLEN),
+      new THREE.MeshStandardMaterial({ color: 0x222428, roughness: 0.9 }));
+    roofUnder.position.set(xBase + side * (roofW / 2 - 0.5), roofH - 0.19, ZCEN);
+    scene.add(roofUnder);
+
+    // Support columns
+    for (let colZ = ZSTART + 8; colZ <= ZSTART + ZLEN - 8; colZ += 14) {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, roofH, 8), roofMat);
+      col.position.set(xBase + side * (ROWS * TREAD - 0.3), roofH / 2, colZ);
+      scene.add(col);
+    }
+
+    // Front fascia wall
+    const fascia = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.3, ZLEN), fasciaMat);
+    fascia.position.set(xBase, 0.65, ZCEN);
+    scene.add(fascia);
+
+    // Banners along fascia
+    const bannerData = [
+      { text: 'CoolDog', bg: '#1a5a2a', fg: '#d4a017' },
+      { text: 'AGILITY', bg: '#1a3a8a', fg: '#ffffff' },
+      { text: 'CoolDog', bg: '#1a5a2a', fg: '#d4a017' },
+      { text: 'AGILITY', bg: '#8a1a1a', fg: '#ffffff' },
+      { text: 'CoolDog', bg: '#1a5a2a', fg: '#d4a017' },
+      { text: 'AGILITY', bg: '#1a3a8a', fg: '#ffffff' },
+    ];
+    const bannerZs = [-5, 15, 35, 55, 75, 100];
+    bannerZs.forEach((bz, idx) => {
+      const bd = bannerData[idx % bannerData.length];
+      const c = document.createElement('canvas'); c.width = 512; c.height = 160;
+      const cx2 = c.getContext('2d');
+      cx2.fillStyle = bd.bg; cx2.fillRect(0, 0, 512, 160);
+      cx2.strokeStyle = bd.fg; cx2.lineWidth = 8; cx2.strokeRect(4, 4, 504, 152);
+      cx2.fillStyle = bd.fg; cx2.font = 'bold 52px Arial';
+      cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
+      cx2.fillText(bd.text, 256, 80);
+      const tex = new THREE.CanvasTexture(c);
+      const bMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+      const banner = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 2.0), bMat);
+      banner.position.set(xBase, roofH - 1.1, bz);
+      banner.rotation.y = side === -1 ? Math.PI / 2 : -Math.PI / 2;
+      scene.add(banner);
+    });
   });
-  g.position.set(x, 0, z);
-  g.rotation.y = rotY;
-  scene.add(g);
-  return g;
-}
+})();
+const fans = [];
+let _crowdCheering = false;
+let crowdCheerTimeout = null;
 
-// Place crowds along the fence sides — store refs for crowd reactions
-const allSpectators = [];
-const crowdColors = [0xe53935,0x1e88e5,0x43a047,0xfb8c00,0x8e24aa,0x00acc1,0xf06292,0xffee58];
-for (let z = -5; z < 140; z += 3.5) {
-  allSpectators.push(makeSpectator(-24 + (Math.random()-0.5), z + (Math.random()-0.5)*1.5,
-    crowdColors[Math.floor(Math.random()*crowdColors.length)], Math.PI * 0.55));
-  allSpectators.push(makeSpectator( 24 + (Math.random()-0.5), z + (Math.random()-0.5)*1.5,
-    crowdColors[Math.floor(Math.random()*crowdColors.length)], -Math.PI * 0.55));
-}
-// Back row slightly elevated on bleachers
-for (let z = -5; z < 140; z += 4) {
-  const sp  = makeSpectator(-25.5, z, crowdColors[Math.floor(Math.random()*crowdColors.length)], Math.PI * 0.5);
-  sp.position.y = 0.5; allSpectators.push(sp);
-  const sp2 = makeSpectator(25.5, z, crowdColors[Math.floor(Math.random()*crowdColors.length)], -Math.PI * 0.5);
-  sp2.position.y = 0.5; allSpectators.push(sp2);
-}
+function buildFans() {
+  const shirtMats = [0xcc2222,0xdd8800,0x2266cc,0x8822cc,0x229944,0xddcc00,0xff6622,0x44aacc]
+    .map(c => new THREE.MeshLambertMaterial({color:c}));
+  const skinMats  = [0xffcba4,0xf0a875,0xd4845a].map(c => new THREE.MeshLambertMaterial({color:c}));
+  const pantsMats = [0x223355,0x332211,0x111111].map(c => new THREE.MeshLambertMaterial({color:c}));
+  const hairMats  = [0x1a0a00,0x8b4513,0xf0d080,0xcc2200].map(c => new THREE.MeshLambertMaterial({color:c}));
+  const eyeMat    = new THREE.MeshLambertMaterial({color:0x111111});
+  const shoeMat   = new THREE.MeshLambertMaterial({color:0x222222});
 
-// Crowd reaction: wave arms for 2 seconds near an obstacle
-const crowdWaves = []; // { group, arms[], startTime, baseY }
-function triggerCrowdReaction(obsWorldZ) {
-  const now = performance.now();
-  allSpectators.forEach(sp => {
-    const dz = Math.abs(sp.position.z - obsWorldZ);
-    if (dz > 14) return; // only nearby spectators
-    // Find arm children (index 2,3 in group)
-    const arms = sp.children.filter((c, ci) => ci >= 2);
-    crowdWaves.push({ sp, arms, startTime: now, baseY: sp.position.y });
+  const torsoGeo    = new THREE.BoxGeometry(.44,.60,.36);
+  const hipsGeo     = new THREE.BoxGeometry(.42,.32,.38);
+  const thighGeo    = new THREE.BoxGeometry(.17,.48,.17);
+  const shinGeo     = new THREE.BoxGeometry(.14,.44,.14);
+  const shoeGeo     = new THREE.BoxGeometry(.16,.10,.30);
+  const upperArmGeo = new THREE.BoxGeometry(.15,.40,.15);
+  const foreArmGeo  = new THREE.BoxGeometry(.12,.36,.12);
+  const headGeo     = new THREE.SphereGeometry(.20, 6, 5);
+  const hairGeo     = new THREE.SphereGeometry(.215, 6, 5);
+  const eyeGeo      = new THREE.SphereGeometry(.026, 5, 4);
+
+  const RISE    = 1.1;
+  const TREAD   = 1.2;
+  const ZSTART  = -10;
+  const ZLEN    = 150;
+  const ROWS    = 5;
+  const SPACING = 4.5;
+  const count   = Math.floor(ZLEN / SPACING);
+
+  [-1, 1].forEach(side => {
+    const xBase = side * 26.5;
+    for (let row = 0; row < ROWS; row++) {
+      const stepTopY = row * RISE + 0.18;
+      const stepX    = xBase + side * (row * TREAD + TREAD * 0.5);
+      for (let fi = 0; fi < count; fi++) {
+        const fz = ZSTART + SPACING*0.5 + fi * SPACING;
+        const g  = new THREE.Group();
+
+        const skinMat  = skinMats [Math.floor(Math.random()*skinMats.length)];
+        const sMat     = shirtMats[Math.floor(Math.random()*shirtMats.length)];
+        const pantsMat = pantsMats[Math.floor(Math.random()*pantsMats.length)];
+        const hairMat  = hairMats [Math.floor(Math.random()*hairMats.length)];
+
+        // Legs
+        [-1,1].forEach(lsd => {
+          const thigh = new THREE.Mesh(thighGeo, pantsMat); thigh.position.set(lsd*.12,.24,0); g.add(thigh);
+          const shin  = new THREE.Mesh(shinGeo,  pantsMat); shin.position.set(lsd*.12,-.26,0); g.add(shin);
+          const shoe  = new THREE.Mesh(shoeGeo,  shoeMat);  shoe.position.set(lsd*.12,-.52,.04); g.add(shoe);
+        });
+
+        // Hips + torso
+        const hips  = new THREE.Mesh(hipsGeo,  pantsMat); hips.position.set(0,.56,0); g.add(hips);
+        const torso = new THREE.Mesh(torsoGeo, sMat);     torso.position.set(0,1.02,0); g.add(torso);
+
+        // Arms
+        const waving = Math.random() > .45;
+        let aR_mesh, aL_mesh;
+        [-1,1].forEach(asd => {
+          const armG = new THREE.Group(); armG.position.set(asd*.28,1.08,0); g.add(armG);
+          const upper = new THREE.Mesh(upperArmGeo, sMat);    upper.position.y = -.20; armG.add(upper);
+          const fore  = new THREE.Mesh(foreArmGeo,  skinMat); fore.position.y  = -.52; armG.add(fore);
+          if (waving) { armG.rotation.z = asd*(-1.0-Math.random()*.4); armG.rotation.x = -0.4-Math.random()*.3; }
+          else        { armG.rotation.x = 0.15; armG.rotation.z = asd*0.12; }
+          if (asd===1) aR_mesh=armG; else aL_mesh=armG;
+        });
+
+        // Head + hair + eyes
+        const head = new THREE.Mesh(headGeo, skinMat); head.position.set(0,1.68,0); g.add(head);
+        const hair = new THREE.Mesh(hairGeo, hairMat); hair.position.set(0,1.76,-.03); hair.scale.set(1,.6,.95); g.add(hair);
+        [-1,1].forEach(esd => {
+          const ey = new THREE.Mesh(eyeGeo, eyeMat); ey.position.set(esd*.085,1.70,.18); g.add(ey);
+        });
+
+        g.position.set(stepX, stepTopY, fz);
+        const baseRotY = side === -1 ? Math.PI/2 : -Math.PI/2;
+        g.rotation.y = baseRotY;
+        scene.add(g);
+        fans.push({mesh:g, aR:aR_mesh, aL:aL_mesh, phase:Math.random()*Math.PI*2, wave:waving, baseY:baseRotY});
+      }
+    }
   });
 }
+buildFans();
 
-function tickCrowdWaves(now) {
-  for (let i = crowdWaves.length - 1; i >= 0; i--) {
-    const w = crowdWaves[i];
-    const t = (now - w.startTime) / 2000; // 0→1 over 2s
-    if (t >= 1) {
-      // Reset arms to original rest angles
-      w.arms.forEach((arm, ai) => { arm.rotation.z = (ai === 0 ? 0.4 : -0.4); });
-      w.sp.position.y = w.baseY;
-      crowdWaves.splice(i, 1);
-    } else {
-      // Wave arms up then back down with bounce
-      const wave = Math.sin(t * Math.PI * 3) * (1 - t);
-      w.arms.forEach((arm, ai) => {
-        arm.rotation.z = (ai === 0 ? 0.4 : -0.4) + (ai === 0 ? -1 : 1) * wave * 1.2;
-      });
-      // Bob up slightly
-      w.sp.position.y = w.baseY + Math.abs(Math.sin(t * Math.PI * 4)) * 0.15 * (1 - t);
+// Fan animation — called from animate loop
+let _fanFrame = 0;
+function tickFans(now) {
+  _fanFrame++;
+  if (_fanFrame % 4 !== 0) return;
+  const cheerSpeed = _crowdCheering ? 11 : 3;
+  const cheerAmp   = _crowdCheering ? 1.0 : 0.55;
+  const dogX = player.pos.x, dogZ = player.pos.z;
+  const t = now * 0.001;
+  for (let fi = 0; fi < fans.length; fi++) {
+    const f = fans[fi];
+    const fdx = dogX - f.mesh.position.x;
+    const fdz = dogZ - f.mesh.position.z;
+    const worldAngle = Math.atan2(fdx, fdz);
+    let diff = worldAngle - f.baseY;
+    while (diff >  Math.PI) diff -= Math.PI*2;
+    while (diff < -Math.PI) diff += Math.PI*2;
+    const clamped = Math.max(-1.22, Math.min(1.22, diff));
+    f.mesh.rotation.y += (f.baseY + clamped - f.mesh.rotation.y) * 0.08;
+    if (fi % 2 === 0 && f.wave && f.aR && f.aL) {
+      const swing = Math.sin(t * cheerSpeed + f.phase);
+      f.aR.rotation.x = -1.1 + swing * cheerAmp;
+      f.aL.rotation.x = -1.1 - swing * cheerAmp;
     }
   }
 }
 
+function triggerCrowdReaction(obsWorldZ) {
+  _crowdCheering = true;
+  if (crowdCheerTimeout) clearTimeout(crowdCheerTimeout);
+  crowdCheerTimeout = setTimeout(() => { _crowdCheering = false; }, 2500);
+}
+
+// kept for compatibility
+const allSpectators = fans.map(f => f.mesh);
+function tickCrowdWaves() {}
+
+
 // ── Trees (pushed outside arena) ──────────────
 function makeTree(x, z) {
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9, metalness: 0.0 });
-  const leaf1Mat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.85, metalness: 0.0 });
-  const leaf2Mat = new THREE.MeshStandardMaterial({ color: 0x388e3c, roughness: 0.8, metalness: 0.0 });
-  const leaf3Mat = new THREE.MeshStandardMaterial({ color: 0x43a047, roughness: 0.8, metalness: 0.0 });
+  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+  const leaf1Mat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
+  const leaf2Mat = new THREE.MeshLambertMaterial({ color: 0x388e3c });
+  const leaf3Mat = new THREE.MeshLambertMaterial({ color: 0x43a047 });
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.22, 0.38, 2.8, 8),
     trunkMat
@@ -1160,10 +1271,10 @@ const COL_DONE     = 0x00e676;  // bright green  – cleared
 const COL_WRONG    = 0xff1744;  // red – wrong order flash
 
 // Shared standard materials for obstacles
-const OBS_POLE_MAT  = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.35, metalness: 0.55 });
-const OBS_BASE_MAT  = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.55, metalness: 0.4 });
-const OBS_RED_MAT   = new THREE.MeshStandardMaterial({ color: 0xe53935, roughness: 0.42, metalness: 0.08 });
-const OBS_WHITE_MAT = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.05 });
+const OBS_POLE_MAT  = new THREE.MeshLambertMaterial({ color: 0xf5f5f5 });
+const OBS_BASE_MAT  = new THREE.MeshLambertMaterial({ color: 0xe0e0e0 });
+const OBS_RED_MAT   = new THREE.MeshLambertMaterial({ color: 0xe53935 });
+const OBS_WHITE_MAT = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
 // ── Shared number-disc builder ─────────────────
 function makeDisc(index, colHex) {
@@ -1200,7 +1311,7 @@ function makeCourseJump(x, z, index, rotY = 0, col = []) {
     // Cup holder ring
     const cup = new THREE.Mesh(
       new THREE.TorusGeometry(0.11, 0.025, 6, 12),
-      new THREE.MeshStandardMaterial({ color: 0xffaa00, roughness: 0.3, metalness: 0.7 })
+      new THREE.MeshLambertMaterial({ color: 0xffaa00 })
     );
     cup.rotation.x = Math.PI / 2;
     cup.position.set(s, 1.1, 0);
@@ -1214,7 +1325,7 @@ function makeCourseJump(x, z, index, rotY = 0, col = []) {
   const segLen = BAR_LEN / SEGS;
   for (let s = 0; s < SEGS; s++) {
     const segCol = s % 2 === 0 ? (isNext ? 0xffcc00 : 0xe53935) : 0xffffff;
-    const segMat = new THREE.MeshStandardMaterial({ color: segCol, roughness: 0.4, metalness: 0.05 });
+    const segMat = new THREE.MeshLambertMaterial({ color: segCol });
     const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, segLen, 10), segMat);
     seg.rotation.z = Math.PI / 2;
     seg.position.set(-BAR_LEN / 2 + segLen * (s + 0.5), 0, 0);
@@ -1250,18 +1361,18 @@ function makeCourseJump(x, z, index, rotY = 0, col = []) {
 // and OUT of the exit mouth (north face). Entry faces -Z (where dog comes from),
 // exit faces +Z (away from start). Simple and unambiguous.
 
-function makeTunnel(cx, cz, index, col = []) {
+function makeTunnel(cx, cz, index, col = [], rotY = 0) {
   const TUNNEL_LEN = 7.0;
-  const RADIUS     = 1.0;  // wider tunnel — easier to see and navigate
+  const RADIUS     = 1.0;
   const SEGMENTS   = 20;
   const SIDES      = 16;
 
-  // Entry mouth: dog approaches from -Z, so entry is at cz - TUNNEL_LEN/2
-  // Exit mouth:  dog exits at cz + TUNNEL_LEN/2
-  const entryPt = new THREE.Vector3(cx, RADIUS, cz - TUNNEL_LEN / 2);
-  const exitPt  = new THREE.Vector3(cx, RADIUS, cz + TUNNEL_LEN / 2);
+  // Entry/exit rotated by rotY around centre
+  const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+  const half = TUNNEL_LEN / 2;
+  const entryPt = new THREE.Vector3(cx - sinR*half, RADIUS, cz - cosR*half);
+  const exitPt  = new THREE.Vector3(cx + sinR*half, RADIUS, cz + cosR*half);
 
-  // Straight line curve along Z
   class LineCurve3D extends THREE.Curve {
     constructor(a, b) { super(); this.a = a; this.b = b; }
     getPoint(t) {
@@ -1275,38 +1386,36 @@ function makeTunnel(cx, cz, index, col = []) {
 
   const curve = new LineCurve3D(entryPt, exitPt);
 
-  // Outer shell — vibrant fabric look
-  const outerMat = new THREE.MeshStandardMaterial({
-    color: index === 0 ? COL_NEXT : 0xe53935,
-    roughness: 0.75, metalness: 0.0,
-    side: THREE.FrontSide,
-  });
+  const outerMat = new THREE.MeshLambertMaterial({ color: index === 0 ? COL_NEXT : 0xe53935, side: THREE.FrontSide });
   const outerGeo  = new THREE.TubeGeometry(curve, SEGMENTS, RADIUS, SIDES, false);
   const outerMesh = new THREE.Mesh(outerGeo, outerMat);
   scene.add(outerMesh); col.push(outerMesh);
 
-  // Dark inner shell so tunnel opening is visible
   const innerMat  = new THREE.MeshBasicMaterial({ color: 0x0a0a18, side: THREE.BackSide });
   const innerMesh = new THREE.Mesh(outerGeo, innerMat);
   scene.add(innerMesh); col.push(innerMesh);
 
-  // Metallic rings at entry and exit mouths
-  const entryRingMat = new THREE.MeshStandardMaterial({ color: 0x42a5f5, roughness: 0.2, metalness: 0.8, side: THREE.DoubleSide });
-  const exitRingMat  = new THREE.MeshStandardMaterial({ color: 0xef5350, roughness: 0.2, metalness: 0.8, side: THREE.DoubleSide });
-  const ringThickness = 0.10;
-  const ringGeo = new THREE.CylinderGeometry(RADIUS + ringThickness, RADIUS + ringThickness, 0.14, SIDES, 1, true);
+  const entryRingMat = new THREE.MeshLambertMaterial({ color: 0x42a5f5, side: THREE.DoubleSide });
+  const exitRingMat  = new THREE.MeshLambertMaterial({ color: 0xef5350, side: THREE.DoubleSide });
+  const ringGeo = new THREE.CylinderGeometry(RADIUS + 0.10, RADIUS + 0.10, 0.14, SIDES, 1, true);
+
+  // Tunnel direction vector (normalized)
+  const tunnelDir = new THREE.Vector3(sinR, 0, cosR).normalize();
+  // CylinderGeometry axis is Y — rotate Y→tunnelDir
+  const quat = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0), tunnelDir
+  );
 
   const entryRing = new THREE.Mesh(ringGeo, entryRingMat);
   entryRing.position.copy(entryPt);
-  entryRing.rotation.x = Math.PI / 2;
+  entryRing.quaternion.copy(quat);
   scene.add(entryRing); col.push(entryRing);
 
   const exitRing = new THREE.Mesh(ringGeo, exitRingMat);
   exitRing.position.copy(exitPt);
-  exitRing.rotation.x = Math.PI / 2;
+  exitRing.quaternion.copy(quat);
   scene.add(exitRing); col.push(exitRing);
 
-  // Number disc above tunnel centre
   const { disc, tex, canvas, ctx } = makeDisc(index, index === 0 ? '#ffeb3b' : '#ffffff');
   disc.position.set(cx, RADIUS * 2 + 1.2, cz);
   scene.add(disc); col.push(disc);
@@ -1314,11 +1423,10 @@ function makeTunnel(cx, cz, index, col = []) {
   return {
     type: 'tunnel',
     outerMat, disc, discTex: tex, canvas, ctx,
-    // Ground-level trigger positions (Y=0) so XZ distance check works
-    entryPos: new THREE.Vector3(cx, 0, cz - TUNNEL_LEN / 2),
-    exitPos:  new THREE.Vector3(cx, 0, cz + TUNNEL_LEN / 2),
-    entryR: 2.0,
-    exitR:  2.0,
+    entryPos: new THREE.Vector3(cx - sinR*half, 0, cz - cosR*half),
+    exitPos:  new THREE.Vector3(cx + sinR*half, 0, cz + cosR*half),
+    entryR: 2.2,
+    exitR:  2.2,
     state: 'idle',
     cleared: false,
     index,
@@ -1334,68 +1442,73 @@ function makeTunnel(cx, cz, index, col = []) {
 // Correct entry side: dog's X < poleX when passing pole 0.
 // Wrong entry → +5 second penalty.
 
-function makeWeave(cx, cz, index, col = []) {
+function makeWeave(cx, cz, index, col = [], rotY = 0) {
   const NUM_POLES  = 6;
   const SPACING    = 1.3;
-  const POLE_H     = 2.2;   // taller poles
+  const POLE_H     = 2.2;
   const poleMeshes = [];
   const poleMats   = [];
 
+  const g = new THREE.Group();
+  g.position.set(cx, 0, cz);
+  g.rotation.y = rotY;
+  scene.add(g); col.push(g);
+
+  const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+
   for (let p = 0; p < NUM_POLES; p++) {
-    const botMat = new THREE.MeshStandardMaterial({ color: 0x1565c0, roughness: 0.45, metalness: 0.1 });
-    const topMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.4, metalness: 0.05 });
+    const botMat = new THREE.MeshLambertMaterial({ color: 0x1565c0 });
+    const topMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f5 });
+    // local coords along Z axis (rotated by group)
+    const lz = p * SPACING - (NUM_POLES - 1) * SPACING / 2;
 
     const botMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, POLE_H * 0.5, 10), botMat);
-    botMesh.position.set(cx, POLE_H * 0.25, cz + p * SPACING);
-    scene.add(botMesh); col.push(botMesh);
+    botMesh.position.set(0, POLE_H * 0.25, lz);
+    g.add(botMesh);
 
     const topMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, POLE_H * 0.5, 10), topMat);
-    topMesh.position.set(cx, POLE_H * 0.75, cz + p * SPACING);
-    scene.add(topMesh); col.push(topMesh);
+    topMesh.position.set(0, POLE_H * 0.75, lz);
+    g.add(topMesh);
 
-    // Base disc
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x0d47a1, roughness: 0.6, metalness: 0.2 });
-    const baseDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.06, 10), baseMat);
-    baseDisc.position.set(cx, 0.03, cz + p * SPACING);
-    scene.add(baseDisc); col.push(baseDisc);
+    const baseMat2 = new THREE.MeshLambertMaterial({ color: 0x0d47a1 });
+    const baseDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.06, 10), baseMat2);
+    baseDisc.position.set(0, 0.03, lz);
+    g.add(baseDisc);
 
     poleMeshes.push(botMesh);
     poleMats.push(botMat);
   }
 
-  // Highlight ring around base of pole 0 (entry pole)
-  const entryRingMat = new THREE.MeshLambertMaterial({
-    color: index === 0 ? COL_NEXT : COL_DEFAULT,
-  });
-  const entryRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.22, 0.05, 6, 16),
-    entryRingMat
-  );
+  const entryRingMat = new THREE.MeshLambertMaterial({ color: index === 0 ? COL_NEXT : COL_DEFAULT });
+  const entryRing = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 6, 16), entryRingMat);
   entryRing.rotation.x = Math.PI / 2;
-  entryRing.position.set(cx, 0.05, cz);
-  scene.add(entryRing); col.push(entryRing);
+  const firstLZ = -(NUM_POLES - 1) * SPACING / 2;
+  entryRing.position.set(0, 0.05, firstLZ);
+  g.add(entryRing);
 
-  // Number disc above pole 0
   const { disc, tex, canvas, ctx } = makeDisc(index, index === 0 ? '#ffeb3b' : '#ffffff');
-  disc.position.set(cx, POLE_H + 0.6, cz + (NUM_POLES - 1) * SPACING / 2);
-  scene.add(disc); col.push(disc);
+  disc.position.set(0, POLE_H + 0.6, 0);
+  g.add(disc);
 
-  // Z positions of each pole for crossing detection
-  const poleZs = Array.from({ length: NUM_POLES }, (_, p) => cz + p * SPACING);
+  // World-space Z positions for each pole (for trigger detection)
+  const poleZs = Array.from({ length: NUM_POLES }, (_, p) => {
+    const lz = p * SPACING - (NUM_POLES - 1) * SPACING / 2;
+    return cz + cosR * lz;
+  });
+  // World-space X of pole line
+  const poleWorldX = cx; // approximation — works for small rotations too
 
   return {
     type: 'weave',
     entryRingMat, disc, discTex: tex, canvas, ctx,
     poleMats,
-    cx,                    // X centre of the poles
-    poleZs,                // Z of each pole
+    cx, cz, cz_center: cz, rotY,
+    poleZs,
     NUM_POLES,
-    // State
-    cleared: false,
-    index,
-    active: false,         // true once dog has passed entry gate
-    nextPole: 0,           // which pole to pass next
-    expectedSide: -1,      // -1 = must be left of pole (x < cx), +1 = right (x > cx)
+    cleared: false, index,
+    active: false,
+    nextPole: 0,
+    expectedSide: -1,
     penaltyApplied: false,
     lastTriggerTime: 0,
   };
@@ -1412,7 +1525,7 @@ function makeWeave(cx, cz, index, col = []) {
 //       If dog's Z passes the exit-zone boundary while y > CONTACT_MAX_Y,
 //       a +5s penalty is applied.
 
-function makeContactObstacle(obsType, cx, cz, index, col = []) {
+function makeContactObstacle(obsType, cx, cz, index, col = [], rotY = 0) {
   const CONTACT_COL   = 0xf9a825;  // yellow contact zone
   const PLANK_COL     = 0xc8a96e;  // wood tan
   const FRAME_COL     = 0x888888;  // grey supports
@@ -1434,7 +1547,7 @@ function makeContactObstacle(obsType, cx, cz, index, col = []) {
 
   // Helper: contact-zone panel (flat yellow slab on a plank surface)
   function makeContactZone(px, py, pz, rx, w, d) {
-    const mat = new THREE.MeshStandardMaterial({ color: 0xf9a825, roughness: 0.6, metalness: 0.0, emissive: 0x332200, emissiveIntensity: 0.15 });
+    const mat = new THREE.MeshLambertMaterial({ color: 0xf9a825, emissive: 0x332200 });
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.06, d), mat);
     m.position.set(px, py, pz);
     m.rotation.x = rx;
@@ -1443,8 +1556,8 @@ function makeContactObstacle(obsType, cx, cz, index, col = []) {
     return m;
   }
 
-  const plankMat  = new THREE.MeshStandardMaterial({ color: 0xc8813a, roughness: 0.82, metalness: 0.0 });
-  const frameMat  = new THREE.MeshStandardMaterial({ color: 0x607d8b, roughness: 0.5, metalness: 0.35 });
+  const plankMat  = new THREE.MeshLambertMaterial({ color: 0xc8813a });
+  const frameMat  = new THREE.MeshLambertMaterial({ color: 0x607d8b });
 
   // Positions returned for trigger logic
   let entryContactZ, exitContactZ, structureCentreZ, peakY;
@@ -1574,57 +1687,55 @@ function makeContactObstacle(obsType, cx, cz, index, col = []) {
 
 // ── Tire jump builder ──────────────────────────
 // A suspended tire ring — autopilot arcs dog through it
-function makeTireJump(cx, cz, index, col = []) {
+function makeTireJump(cx, cz, index, col = [], rotY = 0) {
   const TIRE_R   = 0.65;
   const POST_H   = 2.2;
   const isNext   = index === 0;
 
-  // Two support posts — metallic aluminium
-  const postMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.3, metalness: 0.7 });
+  const g = new THREE.Group();
+  g.position.set(cx, 0, cz);
+  g.rotation.y = rotY;
+  scene.add(g); col.push(g);
+
+  const postMat = new THREE.MeshLambertMaterial({ color: 0xe0e0e0 });
   [-1.1, 1.1].forEach(sx => {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, POST_H, 10), postMat);
-    post.position.set(cx + sx, POST_H / 2, cz);
-    scene.add(post); col.push(post);
+    post.position.set(sx, POST_H / 2, 0);
+    g.add(post);
   });
-  // Cross bar
   const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.3, 10),
-    new THREE.MeshStandardMaterial({ color: 0xbdbdbd, roughness: 0.25, metalness: 0.8 }));
+    new THREE.MeshLambertMaterial({ color: 0xbdbdbd }));
   bar.rotation.z = Math.PI / 2;
-  bar.position.set(cx, POST_H - 0.15, cz);
-  scene.add(bar); col.push(bar);
+  bar.position.set(0, POST_H - 0.15, 0);
+  g.add(bar);
 
-  // Tire — rubber torus with texture-like roughness
-  const tireMat = new THREE.MeshStandardMaterial({
-    color: index === 0 ? 0xffcc00 : 0x1a1a1a,
-    roughness: 0.88, metalness: 0.02
-  });
+  const tireMat = new THREE.MeshLambertMaterial({ color: isNext ? 0xffcc00 : 0x1a1a1a });
   const tire = new THREE.Mesh(new THREE.TorusGeometry(TIRE_R, 0.16, 12, 28), tireMat);
-  tire.position.set(cx, 1.5, cz);
-  scene.add(tire); col.push(tire);
+  tire.position.set(0, 1.5, 0);
+  g.add(tire);
 
-  // Hanging chains — metallic
   [-0.55, 0.55].forEach(sx => {
     const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.55, 6),
-      new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.3, metalness: 0.75 }));
-    chain.position.set(cx + sx, POST_H - 0.45, cz);
-    scene.add(chain); col.push(chain);
+      new THREE.MeshLambertMaterial({ color: 0x9e9e9e }));
+    chain.position.set(sx, POST_H - 0.45, 0);
+    g.add(chain);
   });
 
   const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
-  disc.position.set(cx, POST_H + 0.5, cz);
-  scene.add(disc); col.push(disc);
+  disc.position.set(0, POST_H + 0.5, 0);
+  g.add(disc);
 
   return {
     type: 'tire',
     tireMat, disc, discTex: tex, canvas, ctx,
     pos: new THREE.Vector3(cx, 0, cz),
-    tireY: 1.5,
-    tireR: TIRE_R,
-    triggerR: 2.0,
+    tireY: 1.5, TIRE_R, rotY,
+    triggerR: 2.5,
     cleared: false, index,
     state: 'idle',
   };
 }
+
 
 // ── Pause table builder ────────────────────────
 // Dog must stop on the table and wait 3 seconds
@@ -1673,59 +1784,59 @@ function makePauseTable(cx, cz, index, col = []) {
 
 // ── Seesaw builder ─────────────────────────────
 // Like a dog walk but the plank tips at the midpoint — autopilot handles the pivot moment
-function makeSeesaw(cx, cz, index, col = []) {
+function makeSeesaw(cx, cz, index, col = [], rotY = 0) {
   const PLANK_LEN = 4.0, PLANK_W = 1.0, PIVOT_H = 0.55;
   const isNext = index === 0;
 
-  // Pivot support
+  const g = new THREE.Group();
+  g.position.set(cx, 0, cz);
+  g.rotation.y = rotY;
+  scene.add(g); col.push(g);
+
   const pivotMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
   const pivotPost = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, PIVOT_H, 8), pivotMat);
-  pivotPost.position.set(cx, PIVOT_H / 2, cz);
-  scene.add(pivotPost); col.push(pivotPost);
+  pivotPost.position.set(0, PIVOT_H / 2, 0);
+  g.add(pivotPost);
 
-  // Pivot cylinder (the axle)
   const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, PLANK_W + 0.3, 8), pivotMat);
   axle.rotation.z = Math.PI / 2;
-  axle.position.set(cx, PIVOT_H, cz);
-  scene.add(axle); col.push(axle);
+  axle.position.set(0, PIVOT_H, 0);
+  g.add(axle);
 
-  // Plank (starts entry-end-down, exit-end-up)
   const plankMat = new THREE.MeshLambertMaterial({ color: 0xc8a96e });
   const plank = new THREE.Mesh(new THREE.BoxGeometry(PLANK_W, 0.1, PLANK_LEN), plankMat);
-  // Slight initial tilt — entry end low, exit end high
-  plank.position.set(cx, PIVOT_H, cz);
-  plank.rotation.x = -0.18; // entry end down ~10°
-  plank.castShadow = true;
-  scene.add(plank); col.push(plank);
+  plank.position.set(0, PIVOT_H, 0);
+  plank.rotation.x = -0.18;
+  g.add(plank);
 
-  // Contact zones (yellow ends)
   const contMat = new THREE.MeshLambertMaterial({ color: 0xf9a825 });
   [-1, 1].forEach(s => {
     const cz2 = new THREE.Mesh(new THREE.BoxGeometry(PLANK_W, 0.12, 0.7), contMat);
-    cz2.position.set(cx, PIVOT_H + s * Math.sin(0.18) * PLANK_LEN * 0.5 + 0.05,
-                     cz + s * (PLANK_LEN / 2 - 0.35));
-    scene.add(cz2); col.push(cz2);
+    cz2.position.set(0, PIVOT_H + s * Math.sin(0.18) * PLANK_LEN * 0.5 + 0.05, s * (PLANK_LEN / 2 - 0.35));
+    g.add(cz2);
   });
 
   const statusMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
   const indPost = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8), statusMat);
-  indPost.position.set(cx, 0.2, cz - PLANK_LEN / 2 - 0.3);
-  scene.add(indPost); col.push(indPost);
+  indPost.position.set(0, 0.2, -PLANK_LEN / 2 - 0.3);
+  g.add(indPost);
 
   const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
-  disc.position.set(cx, PIVOT_H + 1.6, cz);
-  scene.add(disc); col.push(disc);
+  disc.position.set(0, PIVOT_H + 1.6, 0);
+  g.add(disc);
 
-  const entryContactZ = cz - PLANK_LEN / 2;
-  const exitContactZ  = cz + PLANK_LEN / 2;
+  // World-space entry/exit along rotY direction
+  const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+  const half = PLANK_LEN / 2;
+  const entryContactZ = cz - cosR * half;
+  const exitContactZ  = cz + cosR * half;
 
   return {
     type: 'seesaw',
     plank, statusMat, disc, discTex: tex, canvas, ctx,
-    cx, cz,
+    cx, cz, rotY,
     entryContactZ, exitContactZ,
-    pivotH: PIVOT_H,
-    plankLen: PLANK_LEN,
+    pivotH: PIVOT_H, plankLen: PLANK_LEN,
     cleared: false, index,
     state: 'idle',
     LATERAL_RANGE: 1.5,
@@ -1736,54 +1847,56 @@ function makeSeesaw(cx, cz, index, col = []) {
 // ── Level definitions ─────────────────────────
 // ── Long Jump builder ─────────────────────────
 // 3 flat boards on the ground — dog runs and jumps over them
-function makeLongJump(cx, cz, index, col = []) {
+function makeLongJump(cx, cz, index, col = [], rotY = 0) {
   const isNext  = index === 0;
-  const N       = 3;       // number of boards
-  const BOARD_L = 1.2;     // each board length along Z
+  const N       = 3;
+  const BOARD_L = 1.2;
   const BOARD_W = 2.4;
   const BOARD_H = 0.12;
   const GAP     = 0.3;
   const totalLen = N * BOARD_L + (N - 1) * GAP;
 
+  const g = new THREE.Group();
+  g.position.set(cx, 0, cz);
+  g.rotation.y = rotY;
+  scene.add(g); col.push(g);
+
   const baseMat   = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
   const stripeMat = new THREE.MeshLambertMaterial({ color: isNext ? 0xffeb3b : COL_DEFAULT });
 
   for (let i = 0; i < N; i++) {
-    const bz = cz - totalLen / 2 + i * (BOARD_L + GAP) + BOARD_L / 2;
+    const lz = -totalLen / 2 + i * (BOARD_L + GAP) + BOARD_L / 2;
     const board = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W, BOARD_H, BOARD_L), baseMat);
-    board.position.set(cx, BOARD_H / 2, bz);
-    board.castShadow = true; board.receiveShadow = true;
-    scene.add(board); col.push(board);
-    // Red stripe on top
+    board.position.set(0, BOARD_H / 2, lz);
+    g.add(board);
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W, 0.02, 0.12), stripeMat);
-    stripe.position.set(cx, BOARD_H + 0.01, bz - BOARD_L / 2 + 0.06);
-    scene.add(stripe); col.push(stripe);
+    stripe.position.set(0, BOARD_H + 0.01, lz - BOARD_L / 2 + 0.06);
+    g.add(stripe);
   }
 
-  // Marker posts at each end
   const postMat = new THREE.MeshLambertMaterial({ color: 0xff3333 });
   [-1, 1].forEach(sx => {
-    [-totalLen/2, totalLen/2].forEach(dz2 => {
+    [-totalLen/2, totalLen/2].forEach(lz => {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), postMat);
-      post.position.set(cx + sx * (BOARD_W/2 + 0.18), 0.45, cz + dz2);
-      scene.add(post); col.push(post);
+      post.position.set(sx * (BOARD_W/2 + 0.18), 0.45, lz);
+      g.add(post);
     });
   });
 
   const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
-  disc.position.set(cx, 2.0, cz);
-  scene.add(disc); col.push(disc);
+  disc.position.set(0, 2.0, 0);
+  g.add(disc);
 
   const statusMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
   const indPost = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 6), statusMat);
-  indPost.position.set(cx, 0.2, cz - totalLen/2 - 0.5);
-  scene.add(indPost); col.push(indPost);
+  indPost.position.set(0, 0.2, -totalLen/2 - 0.5);
+  g.add(indPost);
 
   return {
     type: 'longjump',
     statusMat, disc, discTex: tex, canvas, ctx,
     pos: new THREE.Vector3(cx, 0, cz),
-    totalLen, BOARD_H,
+    totalLen, BOARD_H, rotY,
     triggerR: totalLen / 2 + 1.8,
     cleared: false, index,
     state: 'idle',
@@ -1793,47 +1906,49 @@ function makeLongJump(cx, cz, index, col = []) {
 
 // ── Water Jump builder ─────────────────────────
 // Blue pool on the ground — dog must jump clean over it
-function makeWaterJump(cx, cz, index, col = []) {
+function makeWaterJump(cx, cz, index, col = [], rotY = 0) {
   const isNext  = index === 0;
-  const W = 2.4, D = 2.8, H = 0.15;  // width, depth (along Z), height
+  const W = 2.4, D = 2.8, H = 0.15;
 
-  // Water surface
+  const g = new THREE.Group();
+  g.position.set(cx, 0, cz);
+  g.rotation.y = rotY;
+  scene.add(g); col.push(g);
+
   const waterMat = new THREE.MeshLambertMaterial({ color: 0x1a7abf, transparent: true, opacity: 0.85 });
   const water = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), waterMat);
-  water.position.set(cx, H / 2, cz);
-  scene.add(water); col.push(water);
+  water.position.set(0, H / 2, 0);
+  g.add(water);
 
-  // Ripple lines on surface
   const rippleMat = new THREE.MeshBasicMaterial({ color: 0x5ab4e8, transparent: true, opacity: 0.5 });
   [0.6, 0, -0.6].forEach(dz => {
     const ripple = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.7, 0.06), rippleMat);
     ripple.rotation.x = -Math.PI / 2;
-    ripple.position.set(cx, H + 0.01, cz + dz);
-    scene.add(ripple); col.push(ripple);
+    ripple.position.set(0, H + 0.01, dz);
+    g.add(ripple);
   });
 
-  // Border planks
   const borderMat = new THREE.MeshLambertMaterial({ color: 0x8b6914 });
   [D/2, -D/2].forEach(dz => {
     const plank = new THREE.Mesh(new THREE.BoxGeometry(W + 0.3, 0.1, 0.18), borderMat);
-    plank.position.set(cx, H + 0.05, cz + dz);
-    scene.add(plank); col.push(plank);
+    plank.position.set(0, H + 0.05, dz);
+    g.add(plank);
   });
 
   const statusMat = new THREE.MeshLambertMaterial({ color: isNext ? COL_NEXT : COL_DEFAULT });
   const indPost = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 6), statusMat);
-  indPost.position.set(cx, 0.2, cz - D/2 - 0.5);
-  scene.add(indPost); col.push(indPost);
+  indPost.position.set(0, 0.2, -D/2 - 0.5);
+  g.add(indPost);
 
   const { disc, tex, canvas, ctx } = makeDisc(index, isNext ? '#ffeb3b' : '#ffffff');
-  disc.position.set(cx, 2.2, cz);
-  scene.add(disc); col.push(disc);
+  disc.position.set(0, 2.2, 0);
+  g.add(disc);
 
   return {
     type: 'water',
     statusMat, disc, discTex: tex, canvas, ctx,
     pos: new THREE.Vector3(cx, 0, cz),
-    D, WATER_H: H,
+    D, WATER_H: H, rotY,
     cleared: false, index,
     state: 'idle',
     crossState: 'before',
@@ -2038,21 +2153,33 @@ function clearSceneObstacles() {
 
 function buildLevel(levelIndex) {
   clearSceneObstacles();
-  regenerateCourse(); // fresh random course each time
+  regenerateCourse();
 
-  const def = LEVEL_DEFS[0]; // always index 0
-  courseObstacles = def.obstacles.map((spec, idx) => {
-    if (spec.type === 'jump')      return makeCourseJump(spec.x, spec.z, idx, 0, sceneObstacleObjects);
-    if (spec.type === 'tunnel')    return makeTunnel(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'weave')     return makeWeave(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'aframe')    return makeContactObstacle('aframe',  spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'dogwalk')   return makeContactObstacle('dogwalk', spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'tire')      return makeTireJump(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'pause')     return makePauseTable(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'seesaw')    return makeSeesaw(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'longjump')  return makeLongJump(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'water')     return makeWaterJump(spec.x, spec.z, idx, sceneObstacleObjects);
-    if (spec.type === 'moving')    return makeMovingJump(spec.x, spec.z, idx, sceneObstacleObjects);
+  const def = LEVEL_DEFS[0];
+  const specs = def.obstacles;
+
+  courseObstacles = specs.map((spec, idx) => {
+    // Rotation toward next obstacle (or same direction as prev→current if last)
+    let rotY = 0;
+    if (idx < specs.length - 1) {
+      const nx = specs[idx+1].x - spec.x;
+      const nz = specs[idx+1].z - spec.z;
+      rotY = Math.atan2(nx, nz);
+    } else if (idx > 0) {
+      const nx = spec.x - specs[idx-1].x;
+      const nz = spec.z - specs[idx-1].z;
+      rotY = Math.atan2(nx, nz);
+    }
+
+    if (spec.type === 'jump')      return makeCourseJump(spec.x, spec.z, idx, rotY, sceneObstacleObjects);
+    if (spec.type === 'tunnel')    return makeTunnel(spec.x, spec.z, idx, sceneObstacleObjects, rotY);
+    if (spec.type === 'weave')     return makeWeave(spec.x, spec.z, idx, sceneObstacleObjects, rotY);
+    if (spec.type === 'aframe')    return makeContactObstacle('aframe',  spec.x, spec.z, idx, sceneObstacleObjects, rotY);
+    if (spec.type === 'dogwalk')   return makeContactObstacle('dogwalk', spec.x, spec.z, idx, sceneObstacleObjects, rotY);
+    if (spec.type === 'tire')      return makeTireJump(spec.x, spec.z, idx, sceneObstacleObjects, rotY);
+    if (spec.type === 'seesaw')    return makeSeesaw(spec.x, spec.z, idx, sceneObstacleObjects, rotY);
+    if (spec.type === 'longjump')  return makeLongJump(spec.x, spec.z, idx, sceneObstacleObjects, rotY);
+    if (spec.type === 'water')     return makeWaterJump(spec.x, spec.z, idx, sceneObstacleObjects, rotY);
     return null;
   }).filter(Boolean);
 
@@ -2215,7 +2342,8 @@ function clearObstacle(i, now) {
 function wrongObstacle(obs, now) {
   setObsColour(obs, COL_WRONG);
   setTimeout(() => { if (!obs.cleared) setObsColour(obs, COL_DEFAULT); }, 600);
-  showMsg(`⚠️ סדר שגוי! עשה ${obsLabel(currentObstacle)} קודם!`, 'warn', 2500);
+  applyPenalty();
+  showMsg(`⚠️ סדר שגוי! +5 שניות`, 'warn', 2500);
 }
 
 // ── Penalty system ────────────────────────────
@@ -2250,17 +2378,43 @@ let prevPlayerZ = 0;
 
 let autopilot = null;
 
-function buildJumpPath(obs) {
-  // Smooth arc: approach → peak above bar → land
+function getApproachDir(obsIndex) {
+  // Direction vector from previous obstacle (or dog) to this one
+  const obs = courseObstacles[obsIndex];
+  const cur = getObsEntry(obs);
+  if (obsIndex === 0) return { dx: 0, dz: 1 };
+  const prev = getObsExit(courseObstacles[obsIndex - 1]);
+  const dx = cur.x - prev.x, dz = cur.z - prev.z;
+  const len = Math.sqrt(dx*dx + dz*dz) || 1;
+  return { dx: dx/len, dz: dz/len };
+}
+
+function getExitDir(obsIndex) {
+  // Direction toward the NEXT obstacle
+  const obs  = courseObstacles[obsIndex];
+  const next = courseObstacles[obsIndex + 1];
+  if (!next) return getApproachDir(obsIndex);
+  const ex = getObsExit(obs);
+  const en = getObsEntry(next);
+  const dx = en.x - ex.x, dz = en.z - ex.z;
+  const len = Math.sqrt(dx*dx + dz*dz) || 1;
+  return { dx: dx/len, dz: dz/len };
+}
+
+function buildJumpPath(obs, obsIndex) {
+  // Arc along the approach direction, not just along Z
+  const dir = getApproachDir(obsIndex);
+  const cx = obs.pos.x, cz = obs.pos.z;
   const pts = [];
   const N = 10;
-  const entryZ = obs.pos.z - 2.5;
-  const exitZ  = obs.pos.z + 2.5;
+  const REACH = 2.8; // half-length of the jump arc
   for (let k = 0; k <= N; k++) {
     const t  = k / N;
-    const pz = entryZ + (exitZ - entryZ) * t;
-    const py = Math.sin(t * Math.PI) * 1.6; // arc peaks at 1.6 — clears the 1.1 bar
-    pts.push(new THREE.Vector3(obs.pos.x, Math.max(0, py), pz));
+    const d  = (t - 0.5) * REACH * 2; // -REACH → +REACH along dir
+    const px = cx + dir.dx * d;
+    const pz = cz + dir.dz * d;
+    const py = Math.sin(t * Math.PI) * 1.6;
+    pts.push(new THREE.Vector3(px, Math.max(0, py), pz));
   }
   return pts;
 }
@@ -2281,35 +2435,57 @@ function buildTunnelPath(obs) {
 }
 
 function buildWeavePath(obs) {
-  // Snake left/right through each pole
+  const rotY = obs.rotY || 0;
+  const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+  const cx = obs.cx, cz_center = obs.poleZs ? (obs.poleZs[0] + obs.poleZs[obs.NUM_POLES-1]) / 2 : 0;
+  const SPACING = 1.3;
+  const half = (obs.NUM_POLES - 1) * SPACING / 2;
   const pts = [];
-  // Approach point before first pole
-  pts.push(new THREE.Vector3(obs.cx - 0.7, 0, obs.poleZs[0] - 1.5));
+
+  // Approach point before first pole (in rotY direction)
+  pts.push(new THREE.Vector3(
+    cx - sinR * (half + 1.5) - cosR * 0.7,
+    0,
+    cz_center - cosR * (half + 1.5) + sinR * 0.7
+  ));
+
   for (let p = 0; p < obs.NUM_POLES; p++) {
-    const side = (p % 2 === 0) ? -0.7 : 0.7; // alternate sides
-    pts.push(new THREE.Vector3(obs.cx + side, 0, obs.poleZs[p]));
+    const lz = p * SPACING - half;
+    const side = (p % 2 === 0) ? -0.7 : 0.7;
+    pts.push(new THREE.Vector3(
+      cx + sinR * lz + cosR * side,
+      0,
+      cz_center + cosR * lz - sinR * side
+    ));
   }
+
   // Exit point after last pole
-  pts.push(new THREE.Vector3(obs.cx, 0, obs.poleZs[obs.NUM_POLES - 1] + 1.5));
+  pts.push(new THREE.Vector3(
+    cx + sinR * (half + 1.5),
+    0,
+    cz_center + cosR * (half + 1.5)
+  ));
   return pts;
 }
 
 function buildContactPath(obs) {
-  // Smooth arc: entry → peak → exit
-  // Sample 10 points along the obstacle length
-  const pts = [];
+  const rotY = obs.rotY || 0;
+  const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+  const cx = obs.cx;
+  const entryZ = obs.entryContactZ, exitZ = obs.exitContactZ;
+  // entry/exit are world-space Z values computed along rotY already
+  const peakY = obs.obsType === 'aframe' ? 2.1 : 1.3;
   const N = 10;
-  const entryZ = obs.entryContactZ;
-  const exitZ  = obs.exitContactZ;
-  const peakZ  = (entryZ + exitZ) / 2;
-  const peakY  = obs.CONTACT_MAX_Y !== undefined ? (obs.obsType === 'aframe' ? 2.1 : 1.3) : 1.5;
+  const pts = [];
 
   for (let i = 0; i <= N; i++) {
     const t  = i / N;
-    const pz = entryZ + (exitZ - entryZ) * t;
-    // Parabolic height: peaks in the middle
+    // Interpolate from entry to exit in world space
+    const wz = entryZ + (exitZ - entryZ) * t;
+    // Lateral position stays at cx (contact obstacles are narrow)
+    const wx = cx;
     const py = Math.sin(t * Math.PI) * peakY;
-    pts.push(new THREE.Vector3(obs.cx, py, pz));
+    pts.push(new THREE.Vector3(wx, py, wz));
   }
   return pts;
 }
@@ -2411,7 +2587,7 @@ function checkCourse(playerPos, now) {
         if (i !== currentObstacle) { wrongObstacle(obs, now); obs.crossState = 'cleared'; return; }
         obs.crossState = 'cleared';
         showMsg('🐾 קפיצה!', 'good', 0);
-        startAutopilot(i, buildJumpPath(obs), 7, () => {
+        startAutopilot(i, buildJumpPath(obs, i), 7, () => {
           clearObstacle(i, performance.now());
         });
       }
@@ -2437,22 +2613,23 @@ function checkCourse(playerPos, now) {
       }
 
     } else if (obs.type === 'weave') {
-      if (autopilot && autopilot.obsIndex === i) return; // already running
+      if (autopilot && autopilot.obsIndex === i) return;
       if (i !== currentObstacle) {
-        const d = Math.abs(playerPos.x - obs.cx);
-        const inZRange = playerPos.z >= obs.poleZs[0] - 1.5 &&
-                         playerPos.z <= obs.poleZs[obs.NUM_POLES - 1] + 1.5;
-        if (d < 1.4 && inZRange && now - obsLastTrigger[i] > OBS_COOLDOWN) {
+        // Wrong-order check — use world entry pos
+        const en = getObsEntry(obs);
+        const dWrong = Math.sqrt((playerPos.x-en.x)**2 + (playerPos.z-en.z)**2);
+        if (dWrong < 2.0 && now - obsLastTrigger[i] > OBS_COOLDOWN) {
           obsLastTrigger[i] = now; wrongObstacle(obs, now);
         }
         return;
       }
-      // Trigger autopilot when dog approaches the start of the weave
+      // Trigger: use getObsEntry for correct world-space position after rotY
+      const weaveEntry = getObsEntry(obs);
       const dToEntry = Math.sqrt(
-        (playerPos.x - obs.cx) ** 2 +
-        (playerPos.z - obs.poleZs[0]) ** 2
+        (playerPos.x - weaveEntry.x) ** 2 +
+        (playerPos.z - weaveEntry.z) ** 2
       );
-      if (dToEntry < 2.2 && !obs.active) {
+      if (dToEntry < 3.0 && !obs.active) {
         obs.active = true;
         showMsg('🐾 סללום!', 'good', 0);
         startAutopilot(i, buildWeavePath(obs), 5, () => {
@@ -2482,26 +2659,29 @@ function checkCourse(playerPos, now) {
     } else if (obs.type === 'tire') {
       if (autopilot && autopilot.obsIndex === i) return;
       if (obs.state === 'cleared') return;
-      const dx = playerPos.x - obs.pos.x;
-      const dz = playerPos.z - obs.pos.z;
-      const xzDist = Math.sqrt(dx*dx + dz*dz);
-      if (obs.state === 'idle' && xzDist < 2.5) {
+      const tireEntry = getObsEntry(obs);
+      const dxT = playerPos.x - tireEntry.x;
+      const dzT = playerPos.z - tireEntry.z;
+      const xzDist = Math.sqrt(dxT*dxT + dzT*dzT);
+      if (obs.state === 'idle' && xzDist < 3.5) {
         if (i !== currentObstacle) { wrongObstacle(obs, now); return; }
         obs.state = 'entering';
         showMsg('🐾 דרך הצמיג!', 'good', 0);
-        // Arc path: approach at ground → rise to tire centre → land back at ground
         const cx = obs.pos.x, cz2 = obs.pos.z, tireY = obs.tireY;
-        const dogBodyH = 1.1; // dog body centre height when standing
-        // Peak = tire centre minus half dog height so body fits through ring
-        const peakY = Math.max(0.3, tireY - dogBodyH * 0.6);
+        const rotY = obs.rotY || 0;
+        const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+        const peakY = Math.max(0.3, tireY - 1.1 * 0.6);
+        const REACH = 2.8;
         const pts = [];
         const N = 16;
         for (let k = 0; k <= N; k++) {
           const t = k / N;
-          const pz = cz2 - 2.8 + 5.6 * t;
-          // Bell curve peaking exactly at tire centre (t=0.5)
-          const py = Math.sin(t * Math.PI) * peakY;
-          pts.push(new THREE.Vector3(cx, Math.max(0, py), pz));
+          const d = -REACH + t * REACH * 2;
+          pts.push(new THREE.Vector3(
+            cx + sinR * d,
+            Math.max(0, Math.sin(t * Math.PI) * peakY),
+            cz2 + cosR * d
+          ));
         }
         startAutopilot(i, pts, 8, () => {
           obs.state = 'cleared';
@@ -2578,32 +2758,29 @@ function checkCourse(playerPos, now) {
           // Plank dimensions: length=4, pivot at centre (z=cz), pivot height=0.55
           // Entry tilt: -0.18 rad (entry end down), exit tilt: +0.18 rad (entry end up)
           // Dog sits ON TOP of the plank surface (plank thickness=0.1, so +0.05 above centre)
-          const pivH = obs.pivotH;          // 0.55
-          const half = obs.plankLen / 2;    // 2.0
-          const tilt = 0.18;               // initial tilt angle (entry end down)
-          const plankSurface = 0.05;       // half plank thickness
+          const rotY = obs.rotY || 0;
+          const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+          const pivH = obs.pivotH;
+          const half = obs.plankLen / 2;
+          const tilt = 0.18;
+          const plankSurface = 0.05;
+          const entryCx = obs.cx - sinR * half;  // world entry X
+          const exitCx  = obs.cx + sinR * half;  // world exit X
 
           const pts = [];
           const N = 20;
           for (let k = 0; k <= N; k++) {
             const t = k / N;
-            const pz = obs.entryContactZ + (obs.exitContactZ - obs.entryContactZ) * t;
-            // Local position along plank from centre: negative = entry side
-            const localZ = pz - obs.cz;
-            // Current tilt angle: transitions from -tilt to +tilt after halfway
+            // World position interpolated from entry to exit
+            const wx = entryCx + (exitCx - entryCx) * t;
+            const wz = obs.entryContactZ + (obs.exitContactZ - obs.entryContactZ) * t;
+            const localD = (t - 0.5) * obs.plankLen; // distance from pivot
             let currentTilt;
-            if (t < 0.45) {
-              currentTilt = -tilt; // entry end down, climbing
-            } else if (t < 0.6) {
-              // Smooth tip-over around pivot
-              const tipT = (t - 0.45) / 0.15;
-              currentTilt = -tilt + (2 * tilt) * (tipT * tipT * (3 - 2 * tipT));
-            } else {
-              currentTilt = tilt; // exit end down, descending
-            }
-            // Y of dog = pivot height + localZ * sin(tilt) + plank surface
-            const py = pivH + localZ * Math.sin(currentTilt) + plankSurface;
-            pts.push(new THREE.Vector3(obs.cx, Math.max(0, py), pz));
+            if (t < 0.45)      currentTilt = -tilt;
+            else if (t < 0.6)  { const tipT = (t-0.45)/0.15; currentTilt = -tilt + 2*tilt*(tipT*tipT*(3-2*tipT)); }
+            else                currentTilt = tilt;
+            const py = pivH + localD * Math.sin(currentTilt) + plankSurface;
+            pts.push(new THREE.Vector3(wx, Math.max(0, py), wz));
           }
 
           startAutopilot(i, pts, 3.5, () => {
@@ -2628,13 +2805,16 @@ function checkCourse(playerPos, now) {
         showMsg('🐾 קיר קפיצה!', 'good', 0);
         // Arc over boards
         const cx = obs.pos.x, cz2 = obs.pos.z, half = obs.totalLen / 2;
+        const rotY = obs.rotY || 0;
+        const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+        const REACH = half + 1.5;
         const pts = [];
         const N = 14;
         for (let k = 0; k <= N; k++) {
           const t = k / N;
-          const pz = cz2 - half - 1.5 + (half * 2 + 3.0) * t;
+          const d = -REACH + t * REACH * 2;
           const py = Math.sin(t * Math.PI) * 1.4;
-          pts.push(new THREE.Vector3(cx, Math.max(0, py), pz));
+          pts.push(new THREE.Vector3(cx + sinR * d, Math.max(0, py), cz2 + cosR * d));
         }
         startAutopilot(i, pts, 7, () => {
           clearObstacle(i, performance.now());
@@ -2655,13 +2835,16 @@ function checkCourse(playerPos, now) {
         obs.crossState = 'cleared';
         showMsg('🐾 מכשול מים!', 'good', 0);
         const cx = obs.pos.x, cz2 = obs.pos.z, half = obs.D / 2;
+        const rotY = obs.rotY || 0;
+        const sinR = Math.sin(rotY), cosR = Math.cos(rotY);
+        const REACH = half + 1.2;
         const pts = [];
         const N = 14;
         for (let k = 0; k <= N; k++) {
           const t = k / N;
-          const pz = cz2 - half - 1.2 + (half * 2 + 2.4) * t;
+          const d = -REACH + t * REACH * 2;
           const py = Math.sin(t * Math.PI) * 1.6;
-          pts.push(new THREE.Vector3(cx, Math.max(0, py), pz));
+          pts.push(new THREE.Vector3(cx + sinR * d, Math.max(0, py), cz2 + cosR * d));
         }
         startAutopilot(i, pts, 7, () => {
           clearObstacle(i, performance.now());
@@ -3448,7 +3631,7 @@ function animate() {
   updateDiscs();
   updateBeacon(dt);
   updatePathLines();
-  tickCrowdWaves(nowMs);
+  tickFans(nowMs);
   updateSeesawTilt();
   updateMovingObstacles(dt);
   updateHandler(dt, player.pos, moving);
@@ -3518,9 +3701,21 @@ scene.add(guideLine);
 function getObsEntry(obs) {
   if (obs.type === 'jump')     return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
   if (obs.type === 'tunnel')   return new THREE.Vector3(obs.entryPos.x, 0, obs.entryPos.z);
-  if (obs.type === 'weave')    return new THREE.Vector3(obs.cx, 0, obs.poleZs[0]);
+  if (obs.type === 'weave') {
+    // Entry = first pole in world space, accounting for rotY
+    const rotY = obs.rotY || 0;
+    const half = (obs.NUM_POLES - 1) * 1.3 / 2;
+    return new THREE.Vector3(
+      obs.cx - Math.sin(rotY) * half,
+      0,
+      obs.cz_center - Math.cos(rotY) * half
+    );
+  }
   if (obs.type === 'contact')  return new THREE.Vector3(obs.cx, 0, obs.entryContactZ);
-  if (obs.type === 'tire')     return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
+  if (obs.type === 'tire') {
+    const rotY = obs.rotY || 0;
+    return new THREE.Vector3(obs.pos.x - Math.sin(rotY)*2, 0, obs.pos.z - Math.cos(rotY)*2);
+  }
   if (obs.type === 'pause')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
   if (obs.type === 'seesaw')   return new THREE.Vector3(obs.cx, 0, obs.entryContactZ);
   if (obs.type === 'longjump') return new THREE.Vector3(obs.pos.x, 0, obs.pos.z - obs.totalLen/2);
@@ -3532,9 +3727,20 @@ function getObsEntry(obs) {
 function getObsExit(obs) {
   if (obs.type === 'jump')     return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
   if (obs.type === 'tunnel')   return new THREE.Vector3(obs.exitPos.x, 0, obs.exitPos.z);
-  if (obs.type === 'weave')    return new THREE.Vector3(obs.cx, 0, obs.poleZs[obs.NUM_POLES-1]);
+  if (obs.type === 'weave') {
+    const rotY = obs.rotY || 0;
+    const half = (obs.NUM_POLES - 1) * 1.3 / 2;
+    return new THREE.Vector3(
+      obs.cx + Math.sin(rotY) * half,
+      0,
+      obs.cz_center + Math.cos(rotY) * half
+    );
+  }
   if (obs.type === 'contact')  return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
-  if (obs.type === 'tire')     return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + 2);
+  if (obs.type === 'tire') {
+    const rotY = obs.rotY || 0;
+    return new THREE.Vector3(obs.pos.x + Math.sin(rotY)*2, 0, obs.pos.z + Math.cos(rotY)*2);
+  }
   if (obs.type === 'pause')    return new THREE.Vector3(obs.pos.x, 0, obs.pos.z);
   if (obs.type === 'seesaw')   return new THREE.Vector3(obs.cx, 0, obs.exitContactZ);
   if (obs.type === 'longjump') return new THREE.Vector3(obs.pos.x, 0, obs.pos.z + obs.totalLen/2);
@@ -3709,40 +3915,23 @@ document.addEventListener('keydown', e => {
 });
 
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  PERSONAL BEST  –  localStorage per level
 // ═══════════════════════════════════════════════
-const pbDisplay    = document.getElementById('pb-display');
-const pbValueEl    = document.getElementById('pb-value');
 const newBestFlash = document.getElementById('newbest-flash');
 let   newBestTimer = null;
 
 function getPB(levelIndex) {
-  try {
-    const v = localStorage.getItem(`agility_pb_lvl${levelIndex}`);
-    return v ? parseFloat(v) : null;
-  } catch(e) { return null; }
+  try { const v = localStorage.getItem(`agility_pb_lvl${levelIndex}`); return v ? parseFloat(v) : null; } catch(e) { return null; }
 }
-
 function setPB(levelIndex, ms) {
   try { localStorage.setItem(`agility_pb_lvl${levelIndex}`, String(ms)); } catch(e) {}
 }
-
-function showPB(levelIndex) {
-  const pb = getPB(levelIndex);
-  if (pb !== null) {
-    pbValueEl.textContent = formatTime(pb);
-    pbDisplay.classList.add('visible');
-  } else {
-    pbDisplay.classList.remove('visible');
-  }
-}
-
+function showPB(levelIndex) {}  // PB display removed
 function checkAndSavePB(levelIndex, ms) {
   const existing = getPB(levelIndex);
   if (existing === null || ms < existing) {
     setPB(levelIndex, ms);
-    pbValueEl.textContent = formatTime(ms);
-    // Flash new best
     newBestFlash.classList.add('show');
     clearTimeout(newBestTimer);
     newBestTimer = setTimeout(() => newBestFlash.classList.remove('show'), 2200);
@@ -3829,16 +4018,20 @@ function showLevelStart(levelIndex) {
 //  FINISH SCREEN — confetti + leaderboard
 // ═══════════════════════════════════════════════
 
-// ── Leaderboard (localStorage, global across all runs) ──────
+// ── Leaderboard — per obstacle count so scores are comparable ──
+function getLBKey() {
+  const count = courseObstacles.length;
+  return `agility_lb_obs${count}`;
+}
 function getLB(levelIdx) {
-  try { return JSON.parse(localStorage.getItem(`agility_lb_global`)) || []; } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(getLBKey())) || []; } catch { return []; }
 }
 function saveLB(levelIdx, entries) {
-  try { localStorage.setItem(`agility_lb_global`, JSON.stringify(entries)); } catch {}
+  try { localStorage.setItem(getLBKey(), JSON.stringify(entries)); } catch {}
 }
 function addToLB(levelIdx, name, ms) {
   const entries = getLB(levelIdx);
-  entries.push({ name, ms, run: levelIdx + 1 });
+  entries.push({ name, ms, run: courseObstacles.length });
   entries.sort((a, b) => a.ms - b.ms);
   const trimmed = entries.slice(0, 8);
   saveLB(levelIdx, trimmed);
@@ -4081,6 +4274,7 @@ function selectBreed(type) {
   document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('breed-' + type).classList.add('selected');
   rebuildDog(type); // live preview
+  regenerateCourse(); // fresh course for new dog
 }
 
 function returnToCharSelect() {
