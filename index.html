@@ -88,10 +88,14 @@
     #fullscreen-btn {
       position: fixed; top: 52px; left: 20px;
       background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.13);
-      border-radius: 3px; padding: 8px 12px;
+      border-radius: 3px; padding: 6px 10px;
       color: rgba(255,255,255,0.7); font-family:'Oswald',sans-serif;
-      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; cursor: pointer;
-      z-index: 50; transition: all 0.2s; pointer-events: all;
+      font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      z-index: 300; transition: all 0.2s; pointer-events: all;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    #fullscreen-btn .fs-label {
+      font-size: 8px; letter-spacing: 1px; color: rgba(255,255,255,0.5);
     }
     #fullscreen-btn:hover { border-color: var(--gold); color: var(--gold); }
 
@@ -599,9 +603,83 @@
     .acc-label { font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:1px; color:rgba(255,255,255,0.6); margin-top:4px; }
 
     input:focus { border-color: var(--gold) !important; }
+
+    /* ── ROTATE OVERLAY ──────────────────────────────────────────────────── */
+    #rotate-overlay {
+      position:fixed; inset:0; z-index:9999;
+      background:rgba(5,8,16,0.97);
+      display:none; flex-direction:column; align-items:center; justify-content:center;
+      color:white; text-align:center; padding:20px;
+    }
+    #rotate-overlay.show { display:flex; }
+    #rotate-phone-icon { font-size:72px; display:inline-block; animation:rotatePulse 2.4s ease-in-out infinite; }
+    @keyframes rotatePulse { 0%,100%{transform:rotate(0deg);} 40%,60%{transform:rotate(90deg);} }
+    .rot-title { font-family:'Oswald',sans-serif; font-size:28px; font-weight:700; letter-spacing:5px; color:var(--gold); margin:14px 0 6px; }
+    .rot-sub   { font-size:13px; color:rgba(255,255,255,0.42); letter-spacing:1px; line-height:1.6; margin-bottom:22px; }
+    #rotate-dismiss { font-size:11px; color:rgba(255,255,255,0.25); cursor:pointer; letter-spacing:1px; text-decoration:underline; padding:8px 16px; }
+
+    /* ── COLUMN WRAPPERS — portrait: transparent, landscape: flex columns── */
+    #start-col-left, #start-col-right,
+    #fc-col-left, #fc-col-right { display:contents; }
+
+    /* ── LANDSCAPE MOBILE ─────────────────────────────────────────────────── */
+    @media (orientation:landscape) and (max-height:520px) {
+      /* start screen inner wrapper — two columns */
+      #start-inner {
+        flex-direction:row !important; gap:20px; align-items:center;
+        max-width:none !important; padding:4px 20px !important;
+      }
+      #start-col-left { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+      #start-col-right { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+
+      /* shrink start screen elements */
+      #start-inner h2 { font-size:clamp(22px,5vw,34px) !important; }
+      #start-inner .gold-line { margin:5px auto 8px !important; }
+      #start-inner .char-grid { gap:8px; margin-bottom:8px; }
+      #start-inner .char-card { width:82px; padding:8px 6px; }
+      #start-inner .char-icon { font-size:22px; }
+      #start-inner .char-name { font-size:13px; }
+      #start-inner .char-desc { font-size:9px; }
+      #start-inner .btn { padding:9px 28px; font-size:14px; letter-spacing:3px; margin:4px; }
+      .business-badge { padding:4px 18px; margin-bottom:8px; }
+      .business-name  { font-size:16px; }
+      .owner-info     { font-size:9px; }
+
+      /* finish screen — finish-card becomes two columns */
+      #finish-screen { padding:8px 0 12px; justify-content:flex-start; }
+      #finish-card {
+        display:flex !important; flex-direction:row !important;
+        gap:14px; padding:14px 18px !important;
+        max-width:none !important; width:96vw !important;
+        align-items:flex-start;
+      }
+      #fc-col-left  { display:flex; flex-direction:column; align-items:center; flex:1; }
+      #fc-col-right { display:flex; flex-direction:column; align-items:center; width:220px; flex-shrink:0; }
+      #finish-trophy { font-size:1.8rem; margin-bottom:2px; }
+      #finish-title  { font-size:1.5rem; }
+      #finish-subtitle { font-size:0.72rem; margin-bottom:8px; }
+      #finish-time-big { font-size:2rem; }
+      #finish-leaderboard { max-height:180px; overflow-y:auto; margin-top:0; width:100%; }
+      #finish-name-row { margin-bottom:6px; }
+      #finish-name-input { font-size:12px; padding:7px 10px; }
+      #finish-nav { padding:4px 0 2px; gap:6px; }
+      #btn-next-run { padding:12px 16px; font-size:14px; }
+      #btn-retry-run, #btn-main-menu { padding:10px 10px; font-size:12px; }
+      .finish-divider { margin:6px 0; }
+    }
+
   </style>
 </head>
 <body>
+
+
+<!-- ROTATE OVERLAY -->
+<div id="rotate-overlay">
+  <div id="rotate-phone-icon">📱</div>
+  <div class="rot-title">סובב את הטלפון</div>
+  <div class="rot-sub">המשחק עובד הכי טוב במצב לרוחב<br>לחוויה מלאה של שליטה וניצחון</div>
+  <div id="rotate-dismiss" onclick="dismissRotate()">המשך בכל זאת</div>
+</div>
 
 <div id="canvas-container"></div>
 
@@ -619,9 +697,10 @@
   <!-- Animated background particles via canvas -->
   <canvas id="splash-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0.18;z-index:0;"></canvas>
 
-  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:560px;padding:0 16px;">
+  <div id="start-inner" style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:560px;padding:0 16px;">
 
     <!-- Logo / title block -->
+    <div id="start-col-left">
     <div style="text-align:center;margin-bottom:4px;">
       <div style="font-family:'Oswald';font-size:11px;letter-spacing:5px;color:rgba(212,160,23,0.75);text-transform:uppercase;margin-bottom:8px;">🐾 CoolDog · אג'יליטי כלבני</div>
       <h2 style="font-family:'Oswald';font-size:clamp(32px,8vw,54px);font-weight:700;letter-spacing:6px;color:var(--gold);margin:0;text-shadow:0 0 50px rgba(212,160,23,0.55),0 4px 16px rgba(0,0,0,0.9);">AGILITY</h2>
@@ -629,7 +708,9 @@
     </div>
 
     <div class="gold-line" style="width:220px;margin:10px auto 16px;"></div>
+    </div><!-- end start-col-left -->
 
+    <div id="start-col-right">
     <!-- Dog selection label -->
     <p style="font-family:'Oswald';font-size:10px;letter-spacing:4px;color:rgba(255,255,255,0.42);margin-bottom:12px;text-transform:uppercase;">בחר את הכלב שלך</p>
 
@@ -680,6 +761,7 @@
     </button>
 
     <div style="margin-top:12px;font-family:'Oswald';font-size:9px;letter-spacing:3px;color:rgba(255,255,255,0.18);text-transform:uppercase;">WASD / חצים · כיוון לכל מכשול</div>
+    </div><!-- end start-col-right -->
   </div>
 </div>
 
@@ -704,6 +786,7 @@
 <!-- Finish screen -->
 <div id="finish-screen">
   <div id="finish-card">
+    <div id="fc-col-left">
     <div id="finish-trophy">✅</div>
     <div id="finish-badge">CoolDog · אג׳יליטי</div>
     <div id="finish-title">שלם!</div>
@@ -718,10 +801,13 @@
       <input type="text" id="finish-name-input" placeholder="שמך לטבלת שיאים" maxlength="12" dir="rtl">
       <button id="finish-save-btn" onclick="finishSaveScore()">שמור</button>
     </div>
+    </div><!-- end fc-col-left -->
+    <div id="fc-col-right">
     <div id="finish-leaderboard">
       <h3>🏅 לוח שיאים</h3>
       <div id="lb-rows"><div style="padding:10px;color:rgba(255,255,255,0.3);font-family:'Oswald';font-size:12px;text-align:center;">טוען...</div></div>
     </div>
+    </div><!-- end fc-col-right -->
   </div>
 
   <!-- Navigation buttons — always visible, outside card -->
@@ -742,7 +828,7 @@
 <button id="pause-btn">⏸ השהיה</button>
 
 <!-- Fullscreen button -->
-<button id="fullscreen-btn" title="מסך מלא">⛶</button>
+<button id="fullscreen-btn" title="מסך מלא"><span id="fs-icon">⛶</span><span class="fs-label">מסך מלא</span></button>
 
 <!-- Countdown overlay -->
 <div id="countdown-overlay">
@@ -4335,7 +4421,10 @@ document.addEventListener('keydown', e => {
 const fsBtn = document.getElementById('fullscreen-btn');
 function updateFsBtn() {
   const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  fsBtn.textContent = isFs ? '✕' : '⛶';
+  const ico = document.getElementById('fs-icon');
+  const lbl = fsBtn.querySelector('.fs-label');
+  if (ico) ico.textContent = isFs ? '×' : '⛶';
+  if (lbl) lbl.textContent = isFs ? 'צא' : 'מסך מלא';
   fsBtn.title = isFs ? 'צא ממסך מלא' : 'מסך מלא';
 }
 fsBtn.addEventListener('click', () => {
@@ -4350,6 +4439,23 @@ fsBtn.addEventListener('click', () => {
 });
 document.addEventListener('fullscreenchange',       updateFsBtn);
 document.addEventListener('webkitfullscreenchange', updateFsBtn);
+
+// ── Rotate Overlay ─────────────────────────────
+var _rotDismissed = false;
+var _gameActive   = false;
+function dismissRotate() {
+  _rotDismissed = true;
+  document.getElementById("rotate-overlay").classList.remove("show");
+}
+function _checkRotate() {
+  if (_gameActive) { document.getElementById("rotate-overlay").classList.remove("show"); return; }
+  var isTouch   = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+  var isPortrait = window.innerHeight > window.innerWidth;
+  document.getElementById("rotate-overlay").classList.toggle("show", isTouch && isPortrait && !_rotDismissed);
+}
+window.addEventListener("resize", _checkRotate);
+window.addEventListener("orientationchange", function(){ setTimeout(_checkRotate, 200); });
+setTimeout(_checkRotate, 300);
 
 // ── Personal best ─────────────────────────────
 const newBestFlash = document.getElementById('newbest-flash');
@@ -4600,6 +4706,7 @@ function showFinishScreen(levelIdx, ms, formattedTime, isNewBest, isLast) {
   renderLB(getLB(levelIdx), null);
 
   document.getElementById('finish-screen').classList.add('visible');
+  _gameActive = false; _rotDismissed = false; setTimeout(_checkRotate,300);
   gameInputLocked = false;
   launchConfetti();
 }
@@ -4730,6 +4837,7 @@ function selectBreed(type) {
 }
 
 function returnToCharSelect() {
+  _gameActive = false; _rotDismissed = false; setTimeout(_checkRotate,300);
   setPaused(false);
   hideLevelOverlay();
   isPaused = false;
@@ -4739,6 +4847,7 @@ function returnToCharSelect() {
 }
 
 function startGame() {
+  _gameActive = true; _rotDismissed = false; _checkRotate();
   currentRunNumber = 0;
   rebuildDog(selectedDog);
   document.getElementById('char-select').classList.remove('active');
